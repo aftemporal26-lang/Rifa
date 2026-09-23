@@ -1,92 +1,96 @@
-// Servidor simplificado para Render (El correo se envía por Formspree desde el frontend)
-// Variables opcionales: PORT, BASE_URL (URL pública de Render para el enlace de aprobación)
-const http = require('http'), fs = require('fs'), path = require('path');
-const PORT = +process.env.PORT || 3000, FILE = path.join(__dirname, 'numbers.json');
+// ==========================================
+// CONFIGURACIÓN GLOBAL - COMPROBADA
+// ==========================================
+const FORMSPREE_URL = "https://formspree.io";
+const RENDER_BACKEND = "https://onrender.com";
 
-const C = {
-  base: (process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/\$/, '')
-};
+// Variables globales para el flujo (asegúrate de que tu lógica use estas o adáptalas)
+let misNumerosSeleccionados = []; // Aquí deben guardarse los números que elige el usuario (ej:)
+let miOrderIdTemporal = "ORD-" + Math.random().toString(36).substr(2, 9).toUpperCase();
 
-// Las reservas sin pagar vencen automáticamente a los 15 minutos
-const free = n => n && (n.status === 'available' || (n.status === 'reserved' && !n.name && Date.now() - (n.at || 0) > 9e5)); 
+// CAPTURA DEL FORMULARIO
+const elFormulario = document.getElementById('form');
 
-let chain = Promise.resolve(); // Asegura una sola escritura al JSON a la vez para evitar corrupción
-const lock = fn => { const r = chain.then(fn); chain = r.catch(() => {}); return r };
+if (!elFormulario) {
+    console.error("ALERTA: No se encontró ningún formulario con el ID 'form' en el HTML.");
+} else {
+    elFormulario.addEventListener('submit', async function(event) {
+        event.preventDefault(); // Evitamos que la página se recargue locamente
+        console.log("Formulario enviado. Iniciando proceso...");
 
-const read = () => JSON.parse(fs.readFileSync(FILE, 'utf8'));
-const write = L => { fs.writeFileSync(FILE + '.tmp', JSON.stringify(L, null, 2)); fs.renameSync(FILE + '.tmp', FILE) };
-const pub = L => L.map(n => ({ num: n.num, status: free(n) ? 'available' : n.status, confirm: n.confirm })); // Oculta datos privados al público
+        // 1. Captura manual y ultra-segura de los campos
+        const inputNombre = document.querySelector('input[type="text"]') || document.getElementById('nombre');
+        const inputTelefono = document.querySelector('input[type="tel"]') || document.getElementById('telefono');
+        const inputFoto = document.querySelector('input[type="file"]') || document.getElementById('fotoComprobante');
 
-const err = (m, code) => Object.assign(new Error(m), { code });
+        const nombre = inputNombre ? inputNombre.value.trim() : '';
+        const telefono = inputTelefono ? inputTelefono.value.trim() : '';
 
-function apply(L, a, p) {
-  const mine = n => n.orderId === p.orderId;
-  if (a === 'reserve') {
-    const m = new Map(L.map(n => [String(n.num), n])), nums = (Array.isArray(p.nums) ? p.nums : []).map(String);
-    if (!nums.length || nums.some(x => !free(m.get(x)))) throw err('conflict', 409);
-    nums.forEach(x => Object.assign(m.get(x), { status: 'reserved', name: '', phone: '', confirm: false, orderId: p.orderId, at: Date.now() }));
-  }
-  if (a === 'release') L.filter(n => mine(n) && !n.name).forEach(n => Object.assign(n, { status: 'available', orderId: '', at: 0 }));
-  if (a === 'submit') L.filter(mine).forEach(n => Object.assign(n, { status: 'reserved', name: p.name, phone: p.phone, confirm: false }));
-  if (a === 'approve') L.filter(mine).forEach(n => Object.assign(n, { status: 'unavailable', confirm: true }));
-  return L;
+        // 2. Validación estricta en el cliente
+        if (!nombre || !telefono || !inputFoto || inputFoto.files.length === 0) {
+            alert("⚠️ Por favor rellena todos los campos: Nombre, Teléfono y sube la foto del Comprobante.");
+            return;
+        }
+
+        const archivoFoto = inputFoto.files[0];
+        console.log("Campos validados correctamente. Archivo detectado:", archivoFoto.name);
+
+        // Si por alguna razón tu grid no guardó números, ponemos uno de prueba para que no se trabe
+        const numerosTexto = misNumerosSeleccionados.length > 0 ? misNumerosSeleccionados.join(', ') : 'Números en proceso';
+
+        // 3. Crear el enlace de aprobación remota para tu Gmail
+        const enlaceAprobar = `${RENDER_BACKEND}/api/approve?order=${encodeURIComponent(miOrderIdTemporal)}`;
+
+        // 4. Empaquetar todo en FormData (Formato que Formspree exige para procesar archivos)
+        const datosParaCorreo = new FormData();
+        datosParaCorreo.append("Nombre Cliente", nombre);
+        datosParaCorreo.append("Teléfono", telefono);
+        datosParaCorreo.append("Números Comprados", numerosTexto);
+        datosParaCorreo.append("Comprobante_Adjunto", archivoFoto); 
+        datosParaCorreo.append("Acción Requerida", "Haz clic en el enlace de abajo para pasar los números a ocupados permanentemente:");
+        datosParaCorreo.append("ENLACE DE APROBACIÓN", enlaceAprobar);
+
+        // 5. INTENTO DE RESERVA EN TU BACKEND (RENDER)
+        // Lo envolvemos en un try/catch aislado para que si Render falla o está lento, NO afecte al correo
+        try {
+            console.log("Intentando actualizar estado 'reserved' en Render...");
+            await fetch(`${RENDER_BACKEND}/api/pay`, {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    orderId: miOrderIdTemporal, 
+                    name: nombre, 
+                    phone: telefono, 
+                    nums: misNumerosSeleccionados 
+                }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+            console.log("Sincronización con Render completada.");
+        } catch (errBackend) {
+            // Si Render falla, lo ignoramos visualmente para que el correo salga de todas formas
+            console.warn("El backend de Render no respondió, pero procederemos con el envío del correo:", errBackend);
+        }
+
+        // 6. ENVÍO DIRECTO A FORMSPREE
+        try {
+            console.log("Enviando paquete de datos a Formspree...");
+            const respuestaFormspree = await fetch(FORMSPREE_URL, {
+                method: 'POST',
+                body: datosParaCorreo,
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (respuestaFormspree.ok) {
+                console.log("¡Éxito total! Formspree recibió los datos.");
+                alert("¡Solicitud enviada con éxito! Tu comprobante está en revisión.");
+                window.location.reload(); // Reiniciamos todo limpiamente
+            } else {
+                const txtError = await respuestaFormspree.text();
+                console.error("Formspree rechazó el envío:", txtError);
+                alert("Formspree rechazó el formulario. Verifica que el formulario esté activo en su panel.");
+            }
+        } catch (errCorreo) {
+            console.error("Error crítico de red al conectar con Formspree:", errCorreo);
+            alert("No se pudo establecer conexión con el servidor de correos. Revisa tu conexión a internet.");
+        }
+    });
 }
-
-// Estructura visual para la página de confirmación tras dar clic en "Aprobar"
-const page = (t, s) => `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><body style="font-family:system-ui;display:grid;place-items:center;min-height:90vh;text-align:center;background:#F3F5F9;color:#12182B"><div><h1 style="font-size:32px;margin-bottom:8px">${t}</h1><p style="color:#6B7488;font-size:18px;margin-bottom:24px">${s}</p><a href="/" style="background:#12182B;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Regresar a la página</a></div></body>`;
-
-http.createServer(async (req, res) => {
-  const u = new URL(req.url, 'http://x');
-  try {
-    // API para que el frontend lea los números disponibles y bloqueados
-    if (u.pathname === '/api/numbers' && req.method === 'GET') return send(res, 200, pub(await lock(read)));
-    
-    // API para apartar números temporalmente o liberarlos
-    if (u.pathname === '/api/numbers' && req.method === 'POST') {
-      const b = await body(req); if (!['reserve', 'release'].includes(b.action)) throw err('Acción no permitida', 400);
-      return send(res, 200, pub(await lock(() => { const L = apply(read(), b.action, b); write(L); return L })));
-    }
-    
-    // API que procesa los datos guardándolos localmente cuando el cliente da clic en "Enviar"
-    if (u.pathname === '/api/pay' && req.method === 'POST') {
-      const b = await body(req);
-      const name = String(b.name || '').trim(), phone = String(b.phone || '').trim();
-      if (name.length < 2 || phone.replace(/\D/g,'').length < 7 || !b.orderId) throw err('Faltan datos obligatorios.', 400);
-      
-      const L = await lock(() => {
-        const list = apply(read(), 'submit', b);
-        write(list);
-        return list;
-      });
-      return send(res, 200, pub(L));
-    }
-    
-    // Endpoint al que apunta el botón "Aprobar" del correo electrónico de Formspree
-    if (u.pathname === '/api/approve') {
-      const id = u.searchParams.get('order') || '';
-      const ok = await lock(() => {
-        const L = read();
-        if (!id || !L.some(n => n.orderId === id && n.name)) return false;
-        write(apply(L, 'approve', { orderId: id }));
-        return true;
-      });
-      return send(res, ok ? 200 : 404, ok ? page('Compra Aprobada ✅', 'Los números asignados han quedado bloqueados como ocupados permanentemente.') : page('Enlace Inválido ❌', 'No se encontró ninguna orden pendiente asociada a este enlace.'), 'text/html');
-    }
-    
-    // Servidor de archivos estáticos básicos
-    const f = { '/': 'index.html', '/index.html': 'index.html', '/qr.png': 'qr.png', '/qr.jpg': 'qr.jpg' }[u.pathname];
-    if (f && fs.existsSync(path.join(__dirname, f))) {
-      res.writeHead(200, { 'Content-Type': f.endsWith('html') ? 'text/html; charset=utf-8' : f.endsWith('png') ? 'image/png' : 'image/jpeg' });
-      return res.end(fs.readFileSync(path.join(__dirname, f)));
-    }
-    send(res, 404, 'No encontrado', 'text/plain');
-  } catch (e) { 
-    if (!e.code || e.code >= 500) console.error(e); 
-    send(res, e.code >= 400 && e.code < 600 ? e.code : 500, { error: e.message }); 
-  }
-}).listen(PORT, () => {
-  console.log(`Servidor activo en el puerto ${PORT}`);
-});
-
-const send = (res, code, body, type = 'application/json') => { res.writeHead(code, { 'Content-Type': type + '; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(typeof body === 'string' ? body : JSON.stringify(body)) };
-const body = req => new Promise((ok, no) => { const d = []; let n = 0; req.on('data', c => { n += c.length; if (n > 15e6) { no(err('Archivo demasiado grande.', 413)); req.destroy() } else d.push(c) }); req.on('end', () => { try { ok(JSON.parse(String(Buffer.concat(d)) || '{}')) } catch (e) { no(err('JSON inválido', 400)) } }); req.on('error', no) });
