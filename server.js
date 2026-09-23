@@ -4,7 +4,6 @@ const path = require('path');
 const { Resend } = require('resend');
 
 const PORT = Number(process.env.PORT) || 3000;
-const FILE = path.join(__dirname, 'numbers.json');
 
 const BASE_URL = (
   process.env.BASE_URL ||
@@ -19,6 +18,41 @@ const RESEND_FROM =
 const resend = RESEND_API_KEY
   ? new Resend(RESEND_API_KEY)
   : null;
+
+
+/* =========================================================
+   SUPABASE CONFIG (persistencia)
+
+   Variables de entorno (Render):
+     SUPABASE_URL          (obligatoria)
+     SUPABASE_SECRET_KEY   (obligatoria)
+     SUPABASE_TABLE        (opcional, por defecto "numbers")
+
+   Columnas de la tabla:
+     id, id_num, num, status, name, phone, confirm, date
+
+   Mapeo hacia el formato que espera el frontend:
+     num      -> num
+     status   -> status
+     name     -> name
+     phone    -> phone
+     confirm  -> confirm
+     id_num   -> orderId
+     date     -> at   (milisegundos, bigint)
+========================================================= */
+
+const SUPABASE_URL =
+  (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+
+const SUPABASE_SECRET_KEY =
+  process.env.SUPABASE_SECRET_KEY || '';
+
+const SUPABASE_TABLE =
+  process.env.SUPABASE_TABLE || 'numbers';
+
+const SUPABASE_TIMEOUT_MS = 15000;
+
+const RESERVATION_TTL_MS = 15 * 60 * 1000;
 
 
 /* =========================================================
@@ -67,65 +101,237 @@ function error(message, status = 400) {
 
 
 /* =========================================================
-   NUMBERS DATABASE
+   SUPABASE API
+
+   Nunca se registra la clave en los logs.
 ========================================================= */
 
-function readNumbers() {
-  try {
-    if (!fs.existsSync(FILE)) {
-      throw error(
-        'numbers.json no existe en el servidor.',
-        500
-      );
-    }
+function supabaseConfigured() {
+  return !!(SUPABASE_URL && SUPABASE_SECRET_KEY);
+}
 
-    const raw = fs.readFileSync(FILE, 'utf8');
-    const data = JSON.parse(raw);
 
-    if (!Array.isArray(data)) {
-      throw error(
-        'numbers.json no contiene un arreglo válido.',
-        500
-      );
-    }
+function assertSupabaseConfigured() {
+  const missing = [];
 
-    return data;
+  if (!SUPABASE_URL) missing.push('SUPABASE_URL');
+  if (!SUPABASE_SECRET_KEY) missing.push('SUPABASE_SECRET_KEY');
 
-  } catch (e) {
-    console.error('ERROR LEYENDO numbers.json:', e);
-
-    if (e.status) {
-      throw e;
-    }
+  if (missing.length) {
+    console.error(
+      'SUPABASE CONFIG ERROR: faltan variables de entorno:',
+      missing.join(', ')
+    );
 
     throw error(
-      'No se pudo leer numbers.json.',
+      'Persistencia no configurada en el servidor.',
       500
     );
   }
 }
 
 
-function writeNumbers(list) {
+/*
+  Llamada genérica a la API REST de Supabase (PostgREST).
+  Devuelve { status, data }.
+*/
+
+async function supabaseRequest(method, query, body, extraHeaders) {
+
+  assertSupabaseConfigured();
+
+  const url =
+    `${SUPABASE_URL}/rest/v1/` +
+    `${encodeURIComponent(SUPABASE_TABLE)}` +
+    `${query ? `?${query}` : ''}`;
+
+  const controller = new AbortController();
+
+  const timer = setTimeout(
+    () => controller.abort(),
+    SUPABASE_TIMEOUT_MS
+  );
+
+  let response;
+
   try {
-    const tmp = `${FILE}.tmp`;
 
-    fs.writeFileSync(
-      tmp,
-      JSON.stringify(list, null, 2),
-      'utf8'
-    );
-
-    fs.renameSync(tmp, FILE);
+    response = await fetch(url, {
+      method,
+      headers: {
+        'apikey': SUPABASE_SECRET_KEY,
+        'Authorization': `Bearer ${SUPABASE_SECRET_KEY}`,
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        ...(body !== undefined
+          ? { 'Content-Type': 'application/json' }
+          : {}),
+        ...(extraHeaders || {})
+      },
+      body: body !== undefined
+        ? JSON.stringify(body)
+        : undefined,
+      signal: controller.signal
+    });
 
   } catch (e) {
-    console.error('ERROR ESCRIBIENDO numbers.json:', e);
+
+    console.error(
+      'SUPABASE API: no se pudo contactar con Supabase:',
+      e.name === 'AbortError'
+        ? 'timeout'
+        : e.message
+    );
 
     throw error(
-      `No se pudo guardar numbers.json: ${e.message}`,
+      'No se pudo contactar con la base de datos. Intenta de nuevo.',
+      503
+    );
+
+  } finally {
+
+    clearTimeout(timer);
+  }
+
+  let data = null;
+
+  const raw = await response.text();
+
+  if (raw) {
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      data = raw;
+    }
+  }
+
+  if (response.status === 401 || response.status === 403) {
+
+    console.error(
+      `SUPABASE AUTH ERROR (${response.status}): ` +
+      `la clave es inválida o no tiene permisos.`,
+      typeof data === 'object' && data
+        ? (data.message || '')
+        : ''
+    );
+
+    throw error(
+      'Error de autenticación con la base de datos.',
+      502
+    );
+  }
+
+  if (response.status === 404) {
+
+    console.error(
+      `SUPABASE NOT FOUND (404): revisa SUPABASE_URL y que ` +
+      `la tabla "${SUPABASE_TABLE}" exista.`
+    );
+
+    throw error(
+      'No se encontró la tabla en la base de datos.',
       500
     );
   }
+
+  if (!response.ok) {
+
+    console.error(
+      `SUPABASE API ERROR: HTTP ${response.status}`,
+      typeof data === 'object' && data
+        ? (data.message || JSON.stringify(data))
+        : data
+    );
+
+    throw error(
+      'Error en la base de datos.',
+      502
+    );
+  }
+
+  return {
+    status: response.status,
+    data
+  };
+}
+
+
+/* =========================================================
+   NUMBERS DATABASE (Supabase)
+========================================================= */
+
+/*
+  Convierte una fila de Supabase al formato
+  que ya usaba el resto del servidor y el frontend.
+*/
+
+function rowToNumber(row) {
+  return {
+    num: String(row.num),
+    status: row.status,
+    name: row.name || '',
+    phone: row.phone || '',
+    confirm: !!row.confirm,
+    orderId: row.id_num ? String(row.id_num) : '',
+    at: Number(row.date || 0)
+  };
+}
+
+
+/*
+  Lee todos los números, ordenados por id.
+*/
+
+async function readNumbers() {
+
+  const { data } =
+    await supabaseRequest(
+      'GET',
+      'select=id,id_num,num,status,name,phone,confirm,date' +
+      '&order=id.asc'
+    );
+
+  if (!Array.isArray(data)) {
+
+    console.error(
+      'SUPABASE ERROR: la respuesta no es un arreglo.'
+    );
+
+    throw error(
+      'Respuesta inválida de la base de datos.',
+      502
+    );
+  }
+
+  return data.map(rowToNumber);
+}
+
+
+/*
+  Codifica un valor para usarlo en un filtro de PostgREST.
+*/
+
+function q(value) {
+  return encodeURIComponent(String(value));
+}
+
+
+/*
+  Aplica un PATCH y devuelve las filas realmente
+  modificadas (return=representation).
+*/
+
+async function patchRows(filter, values) {
+
+  const { data } =
+    await supabaseRequest(
+      'PATCH',
+      filter,
+      values,
+      { 'Prefer': 'return=representation' }
+    );
+
+  return Array.isArray(data) ? data : [];
 }
 
 
@@ -146,7 +352,7 @@ function free(n) {
     n.status === 'reserved' &&
     !n.name &&
     Number(n.at || 0) &&
-    Date.now() - Number(n.at) > 15 * 60 * 1000
+    Date.now() - Number(n.at) > RESERVATION_TTL_MS
   ) {
     return true;
   }
@@ -174,187 +380,252 @@ function publicNumbers(list) {
 
 /* =========================================================
    DATABASE MUTATIONS
+
+   Cada acción se ejecuta directamente contra Supabase
+   con UPDATEs condicionales, de modo que dos usuarios
+   no puedan reservar el mismo número a la vez.
 ========================================================= */
 
-function apply(list, action, payload) {
+/*
+  RESERVE
+
+  Para cada número se intenta un UPDATE condicional:
+    - solo si sigue "available"
+    - o si es una reserva expirada (reserved, sin nombre,
+      con fecha anterior al límite)
+
+  Si alguno falla, se revierten los ya reservados
+  y se responde 409, igual que antes.
+*/
+
+async function reserveNumbers(payload) {
+
   const orderId = String(payload.orderId || '');
 
   if (!orderId) {
-    throw error(
-      'Falta orderId.',
-      400
+    throw error('Falta orderId.', 400);
+  }
+
+  const nums = Array.isArray(payload.nums)
+    ? payload.nums.map(String)
+    : [];
+
+  if (!nums.length) {
+    throw error('No se recibieron números.', 400);
+  }
+
+  const uniqueNums = [...new Set(nums)];
+
+  const timestamp =
+    Number(payload.at) || Date.now();
+
+  const expiredBefore =
+    Date.now() - RESERVATION_TTL_MS;
+
+
+  /*
+    Verificar que todos existan antes de tocar nada.
+  */
+
+  const { data: existing } =
+    await supabaseRequest(
+      'GET',
+      `select=num&num=in.(${uniqueNums.map(q).join(',')})`
     );
+
+  const existingSet =
+    new Set(
+      (Array.isArray(existing) ? existing : [])
+        .map(r => String(r.num))
+    );
+
+  for (const num of uniqueNums) {
+    if (!existingSet.has(num)) {
+      throw error(
+        `El número ${num} no existe.`,
+        404
+      );
+    }
   }
 
 
-  /* -------------------------------------------------------
-     RESERVE
-  ------------------------------------------------------- */
+  const reserved = [];
 
-  if (action === 'reserve') {
-    const map = new Map(
-      list.map(n => [
-        String(n.num),
-        n
-      ])
-    );
+  const values = {
+    status: 'reserved',
+    name: '',
+    phone: '',
+    confirm: false,
+    id_num: orderId,
+    date: timestamp
+  };
 
-    const nums = Array.isArray(payload.nums)
-      ? payload.nums.map(String)
-      : [];
 
-    if (!nums.length) {
-      throw error(
-        'No se recibieron números.',
-        400
-      );
-    }
+  try {
 
-    /*
-      Elimina duplicados por seguridad.
-    */
-    const uniqueNums = [
-      ...new Set(nums)
-    ];
-
-    /*
-      Primero verificamos TODOS.
-      No modificamos nada hasta saber
-      que todos están disponibles.
-    */
     for (const num of uniqueNums) {
-      const n = map.get(num);
 
-      if (!n) {
-        throw error(
-          `El número ${num} no existe.`,
-          404
+      /*
+        Intento 1: el número está disponible.
+      */
+
+      let rows =
+        await patchRows(
+          `num=eq.${q(num)}&status=eq.available`,
+          values
         );
+
+      /*
+        Intento 2: reserva expirada (sin nombre y vieja).
+      */
+
+      if (!rows.length) {
+
+        rows =
+          await patchRows(
+            `num=eq.${q(num)}` +
+            `&status=eq.reserved` +
+            `&name=eq.` +
+            `&date=gt.0` +
+            `&date=lt.${expiredBefore}`,
+            values
+          );
       }
 
-      if (!free(n)) {
+      if (!rows.length) {
+
         throw error(
           `El número ${num} ya no está disponible.`,
           409
         );
       }
+
+      reserved.push(num);
     }
+
+  } catch (e) {
 
     /*
-      Ahora sí reservamos.
+      Revertir los que sí alcanzamos a reservar.
     */
-    const timestamp =
-      Number(payload.at) || Date.now();
 
-    for (const num of uniqueNums) {
-      const n = map.get(num);
+    for (const num of reserved) {
+      try {
+        await patchRows(
+          `num=eq.${q(num)}&id_num=eq.${q(orderId)}&name=eq.`,
+          {
+            status: 'available',
+            name: '',
+            phone: '',
+            confirm: false,
+            id_num: null,
+            date: 0
+          }
+        );
+      } catch (rollbackError) {
+        console.error(
+          `ERROR REVIRTIENDO ${num}:`,
+          rollbackError.message
+        );
+      }
+    }
 
-      Object.assign(n, {
+    throw e;
+  }
+}
+
+
+/*
+  RELEASE
+
+  Libera los números del pedido que aún no tienen nombre.
+*/
+
+async function releaseNumbers(payload) {
+
+  const orderId = String(payload.orderId || '');
+
+  if (!orderId) {
+    throw error('Falta orderId.', 400);
+  }
+
+  await patchRows(
+    `id_num=eq.${q(orderId)}&name=eq.`,
+    {
+      status: 'available',
+      name: '',
+      phone: '',
+      confirm: false,
+      id_num: null,
+      date: 0
+    }
+  );
+}
+
+
+/*
+  SUBMIT
+
+  Guarda nombre y teléfono en los números del pedido.
+  Devuelve las filas afectadas.
+*/
+
+async function submitOrder(payload) {
+
+  const orderId = String(payload.orderId || '');
+
+  if (!orderId) {
+    throw error('Falta orderId.', 400);
+  }
+
+  const rows =
+    await patchRows(
+      `id_num=eq.${q(orderId)}`,
+      {
         status: 'reserved',
-        name: '',
-        phone: '',
-        confirm: false,
-        orderId,
-        at: timestamp
-      });
-    }
-  }
-
-
-  /* -------------------------------------------------------
-     RELEASE
-  ------------------------------------------------------- */
-
-  else if (action === 'release') {
-
-    for (const n of list) {
-      if (
-        String(n.orderId || '') === orderId &&
-        !n.name
-      ) {
-        Object.assign(n, {
-          status: 'available',
-          name: '',
-          phone: '',
-          confirm: false,
-          orderId: '',
-          at: 0
-        });
+        name: String(payload.name || ''),
+        phone: String(payload.phone || ''),
+        confirm: false
       }
-    }
-  }
-
-
-  /* -------------------------------------------------------
-     SUBMIT
-  ------------------------------------------------------- */
-
-  else if (action === 'submit') {
-
-    let found = false;
-
-    for (const n of list) {
-      if (
-        String(n.orderId || '') === orderId
-      ) {
-        found = true;
-
-        Object.assign(n, {
-          status: 'reserved',
-          name: String(payload.name || ''),
-          phone: String(payload.phone || ''),
-          confirm: false
-        });
-      }
-    }
-
-    if (!found) {
-      throw error(
-        'No se encontró la reserva.',
-        404
-      );
-    }
-  }
-
-
-  /* -------------------------------------------------------
-     APPROVE
-  ------------------------------------------------------- */
-
-  else if (action === 'approve') {
-
-    let found = false;
-
-    for (const n of list) {
-      if (
-        String(n.orderId || '') === orderId
-      ) {
-        found = true;
-
-        Object.assign(n, {
-          status: 'unavailable',
-          confirm: true
-        });
-      }
-    }
-
-    if (!found) {
-      throw error(
-        'No se encontró la reserva.',
-        404
-      );
-    }
-  }
-
-
-  else {
-    throw error(
-      `Acción desconocida: ${action}`,
-      400
     );
+
+  if (!rows.length) {
+    throw error('No se encontró la reserva.', 404);
   }
 
-  return list;
+  return rows;
+}
+
+
+/*
+  APPROVE
+
+  Marca los números del pedido como "unavailable".
+  Devuelve las filas afectadas.
+*/
+
+async function approveOrder(payload) {
+
+  const orderId = String(payload.orderId || '');
+
+  if (!orderId) {
+    throw error('Falta orderId.', 400);
+  }
+
+  const rows =
+    await patchRows(
+      `id_num=eq.${q(orderId)}`,
+      {
+        status: 'unavailable',
+        confirm: true
+      }
+    );
+
+  if (!rows.length) {
+    throw error('No se encontró la reserva.', 404);
+  }
+
+  return rows;
 }
 
 
@@ -740,7 +1011,7 @@ async function sendOrderEmail({
         </p>
 
         <p>
-          <a
+          
             href="${approveUrl}"
             style="
               display:inline-block;
@@ -888,7 +1159,11 @@ const server =
             200,
             {
               ok: true,
-              numbersFile: fs.existsSync(FILE),
+              storage: 'supabase',
+              supabaseConfigured:
+                supabaseConfigured(),
+              supabaseUrl: SUPABASE_URL,
+              supabaseTable: SUPABASE_TABLE,
               resendConfigured:
                 !!RESEND_API_KEY,
               emailTo: EMAIL_TO,
@@ -934,7 +1209,7 @@ const server =
         ) {
 
           const list =
-            readNumbers();
+            await readNumbers();
 
           return json(
             res,
@@ -974,18 +1249,17 @@ const server =
           }
 
 
-          const list =
-            readNumbers();
+          if (action === 'reserve') {
+            await reserveNumbers(body);
+          }
 
+          else if (action === 'release') {
+            await releaseNumbers(body);
+          }
 
-          apply(
-            list,
-            action,
-            body
-          );
-
-
-          writeNumbers(list);
+          else if (action === 'approve') {
+            await approveOrder(body);
+          }
 
 
           /*
@@ -994,6 +1268,9 @@ const server =
             porque el index.html original espera
             r.json() === arreglo de números.
           */
+
+          const list =
+            await readNumbers();
 
           return json(
             res,
@@ -1121,7 +1398,7 @@ const server =
           */
 
           let list =
-            readNumbers();
+            await readNumbers();
 
 
           const reserved =
@@ -1151,19 +1428,15 @@ const server =
             antes de enviar el correo.
           */
 
+          await submitOrder({
+            orderId,
+            name,
+            phone
+          });
+
+
           list =
-            apply(
-              list,
-              'submit',
-              {
-                orderId,
-                name,
-                phone
-              }
-            );
-
-
-          writeNumbers(list);
+            await readNumbers();
 
 
           /*
@@ -1210,12 +1483,7 @@ const server =
 
 
           /*
-            Devolvemos DIRECTAMENTE el arreglo
-            porque el index.html original hace:
-
-              DB = j;
-
-            y espera que j sea el arreglo.
+            Respuesta idéntica a la original.
           */
 
           return json(
@@ -1286,7 +1554,7 @@ const server =
 
 
           const list =
-            readNumbers();
+            await readNumbers();
 
 
           const found =
@@ -1330,15 +1598,7 @@ const server =
           }
 
 
-          const approved =
-            apply(
-              list,
-              'approve',
-              { orderId }
-            );
-
-
-          writeNumbers(approved);
+          await approveOrder({ orderId });
 
 
           return html(
@@ -1571,7 +1831,7 @@ const server =
 
         console.error(
           'SERVER ERROR:',
-          e
+          e.message || e
         );
 
 
@@ -1634,9 +1894,17 @@ server.listen(
     );
 
     console.log(
-      `numbers.json: ${
-        fs.existsSync(FILE)
-          ? 'FOUND'
+      `STORAGE: Supabase (${
+        supabaseConfigured()
+          ? `${SUPABASE_URL} / tabla ${SUPABASE_TABLE}`
+          : 'NO CONFIGURADO - faltan variables SUPABASE_*'
+      })`
+    );
+
+    console.log(
+      `SUPABASE_SECRET_KEY: ${
+        SUPABASE_SECRET_KEY
+          ? 'CONFIGURED'
           : 'MISSING'
       }`
     );
