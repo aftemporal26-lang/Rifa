@@ -1,7 +1,6 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const { Resend } = require('resend');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -12,17 +11,8 @@ const BASE_URL = (
   `http://localhost:${PORT}`
 ).replace(/\/$/, '');
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const EMAIL_TO = process.env.EMAIL_TO || 'angierodca@gmail.com';
-
-/*
-  IMPORTANTE:
-  Para pruebas puedes usar:
-      onboarding@resend.dev
-
-  Cuando tengas un dominio verificado en Resend,
-  cambia RESEND_FROM en Render por tu dirección real.
-*/
 const RESEND_FROM =
   process.env.RESEND_FROM || 'onboarding@resend.dev';
 
@@ -32,7 +22,7 @@ const resend = RESEND_API_KEY
 
 
 /* =========================================================
-   BASIC HELPERS
+   HELPERS
 ========================================================= */
 
 function json(res, status, data) {
@@ -51,7 +41,8 @@ function json(res, status, data) {
 function html(res, status, body) {
   res.writeHead(status, {
     'Content-Type': 'text/html; charset=utf-8',
-    'Content-Length': Buffer.byteLength(body)
+    'Content-Length': Buffer.byteLength(body),
+    'Cache-Control': 'no-store'
   });
 
   res.end(body);
@@ -82,46 +73,70 @@ function error(message, status = 400) {
 function readNumbers() {
   try {
     if (!fs.existsSync(FILE)) {
-      return [];
+      throw error(
+        'numbers.json no existe en el servidor.',
+        500
+      );
     }
 
     const raw = fs.readFileSync(FILE, 'utf8');
     const data = JSON.parse(raw);
 
-    return Array.isArray(data) ? data : [];
+    if (!Array.isArray(data)) {
+      throw error(
+        'numbers.json no contiene un arreglo válido.',
+        500
+      );
+    }
+
+    return data;
+
   } catch (e) {
     console.error('ERROR LEYENDO numbers.json:', e);
-    return [];
+
+    if (e.status) {
+      throw e;
+    }
+
+    throw error(
+      'No se pudo leer numbers.json.',
+      500
+    );
   }
 }
 
 
 function writeNumbers(list) {
-  const tmp = `${FILE}.tmp`;
+  try {
+    const tmp = `${FILE}.tmp`;
 
-  fs.writeFileSync(
-    tmp,
-    JSON.stringify(list, null, 2),
-    'utf8'
-  );
+    fs.writeFileSync(
+      tmp,
+      JSON.stringify(list, null, 2),
+      'utf8'
+    );
 
-  fs.renameSync(tmp, FILE);
+    fs.renameSync(tmp, FILE);
+
+  } catch (e) {
+    console.error('ERROR ESCRIBIENDO numbers.json:', e);
+
+    throw error(
+      `No se pudo guardar numbers.json: ${e.message}`,
+      500
+    );
+  }
 }
 
 
-/*
-  Un número se considera libre cuando:
+/* =========================================================
+   AVAILABLE / EXPIRED RESERVATIONS
+========================================================= */
 
-  - está available
-
-  O
-
-  - está reservado temporalmente
-  - todavía no tiene nombre
-  - han pasado más de 15 minutos
-*/
 function free(n) {
-  if (!n) return false;
+  if (!n) {
+    return false;
+  }
 
   if (n.status === 'available') {
     return true;
@@ -130,12 +145,30 @@ function free(n) {
   if (
     n.status === 'reserved' &&
     !n.name &&
-    Date.now() - Number(n.at || 0) > 15 * 60 * 1000
+    Number(n.at || 0) &&
+    Date.now() - Number(n.at) > 15 * 60 * 1000
   ) {
     return true;
   }
 
   return false;
+}
+
+
+/* =========================================================
+   PUBLIC DATABASE
+========================================================= */
+
+function publicNumbers(list) {
+  return list.map(n => ({
+    num: n.num,
+    status: n.status,
+    name: n.name || '',
+    phone: n.phone || '',
+    confirm: !!n.confirm,
+    orderId: n.orderId || '',
+    at: Number(n.at || 0)
+  }));
 }
 
 
@@ -147,16 +180,23 @@ function apply(list, action, payload) {
   const orderId = String(payload.orderId || '');
 
   if (!orderId) {
-    throw error('Falta orderId.', 400);
+    throw error(
+      'Falta orderId.',
+      400
+    );
   }
 
 
-  /*
-    RESERVE
-  */
+  /* -------------------------------------------------------
+     RESERVE
+  ------------------------------------------------------- */
+
   if (action === 'reserve') {
     const map = new Map(
-      list.map(n => [String(n.num), n])
+      list.map(n => [
+        String(n.num),
+        n
+      ])
     );
 
     const nums = Array.isArray(payload.nums)
@@ -164,13 +204,35 @@ function apply(list, action, payload) {
       : [];
 
     if (!nums.length) {
-      throw error('No se recibieron números.', 400);
+      throw error(
+        'No se recibieron números.',
+        400
+      );
     }
 
-    for (const num of nums) {
+    /*
+      Elimina duplicados por seguridad.
+    */
+    const uniqueNums = [
+      ...new Set(nums)
+    ];
+
+    /*
+      Primero verificamos TODOS.
+      No modificamos nada hasta saber
+      que todos están disponibles.
+    */
+    for (const num of uniqueNums) {
       const n = map.get(num);
 
-      if (!n || !free(n)) {
+      if (!n) {
+        throw error(
+          `El número ${num} no existe.`,
+          404
+        );
+      }
+
+      if (!free(n)) {
         throw error(
           `El número ${num} ya no está disponible.`,
           409
@@ -178,7 +240,13 @@ function apply(list, action, payload) {
       }
     }
 
-    for (const num of nums) {
+    /*
+      Ahora sí reservamos.
+    */
+    const timestamp =
+      Number(payload.at) || Date.now();
+
+    for (const num of uniqueNums) {
       const n = map.get(num);
 
       Object.assign(n, {
@@ -187,16 +255,18 @@ function apply(list, action, payload) {
         phone: '',
         confirm: false,
         orderId,
-        at: Date.now()
+        at: timestamp
       });
     }
   }
 
 
-  /*
-    RELEASE
-  */
+  /* -------------------------------------------------------
+     RELEASE
+  ------------------------------------------------------- */
+
   else if (action === 'release') {
+
     for (const n of list) {
       if (
         String(n.orderId || '') === orderId &&
@@ -204,25 +274,29 @@ function apply(list, action, payload) {
       ) {
         Object.assign(n, {
           status: 'available',
-          orderId: '',
-          at: 0,
           name: '',
           phone: '',
-          confirm: false
+          confirm: false,
+          orderId: '',
+          at: 0
         });
       }
     }
   }
 
 
-  /*
-    SUBMIT
-  */
+  /* -------------------------------------------------------
+     SUBMIT
+  ------------------------------------------------------- */
+
   else if (action === 'submit') {
+
     let found = false;
 
     for (const n of list) {
-      if (String(n.orderId || '') === orderId) {
+      if (
+        String(n.orderId || '') === orderId
+      ) {
         found = true;
 
         Object.assign(n, {
@@ -243,14 +317,18 @@ function apply(list, action, payload) {
   }
 
 
-  /*
-    APPROVE
-  */
+  /* -------------------------------------------------------
+     APPROVE
+  ------------------------------------------------------- */
+
   else if (action === 'approve') {
+
     let found = false;
 
     for (const n of list) {
-      if (String(n.orderId || '') === orderId) {
+      if (
+        String(n.orderId || '') === orderId
+      ) {
         found = true;
 
         Object.assign(n, {
@@ -281,27 +359,20 @@ function apply(list, action, payload) {
 
 
 /* =========================================================
-   PUBLIC NUMBERS
+   JSON BODY
 ========================================================= */
 
-function publicNumbers(list) {
-  return list.map(n => ({
-    num: n.num,
-    status: n.status
-  }));
-}
-
-
-/* =========================================================
-   REQUEST BODY - JSON
-========================================================= */
-
-function readJsonBody(req, maxBytes = 2 * 1024 * 1024) {
+function readJsonBody(
+  req,
+  maxBytes = 15 * 1024 * 1024
+) {
   return new Promise((resolve, reject) => {
+
     let total = 0;
     const chunks = [];
 
     req.on('data', chunk => {
+
       total += chunk.length;
 
       if (total > maxBytes) {
@@ -317,17 +388,25 @@ function readJsonBody(req, maxBytes = 2 * 1024 * 1024) {
       chunks.push(chunk);
     });
 
+
     req.on('end', () => {
+
       try {
-        const raw = Buffer.concat(chunks).toString('utf8');
+        const raw =
+          Buffer.concat(chunks)
+            .toString('utf8');
 
         if (!raw) {
           resolve({});
           return;
         }
 
-        resolve(JSON.parse(raw));
+        resolve(
+          JSON.parse(raw)
+        );
+
       } catch (e) {
+
         reject(error(
           'JSON inválido.',
           400
@@ -335,185 +414,6 @@ function readJsonBody(req, maxBytes = 2 * 1024 * 1024) {
       }
     });
 
-    req.on('error', reject);
-  });
-}
-
-
-/* =========================================================
-   MULTIPART FORM PARSER
-========================================================= */
-
-function parseMultipart(req, maxBytes = 12 * 1024 * 1024) {
-  return new Promise((resolve, reject) => {
-    const contentType =
-      req.headers['content-type'] || '';
-
-    const match = contentType.match(
-      /boundary=(?:"([^"]+)"|([^;]+))/i
-    );
-
-    if (!match) {
-      reject(error(
-        'Falta boundary multipart.',
-        400
-      ));
-      return;
-    }
-
-    const boundary =
-      Buffer.from(`--${match[1] || match[2]}`);
-
-    const chunks = [];
-    let total = 0;
-
-    req.on('data', chunk => {
-      total += chunk.length;
-
-      if (total > maxBytes) {
-        reject(error(
-          'El comprobante es demasiado grande.',
-          413
-        ));
-
-        req.destroy();
-        return;
-      }
-
-      chunks.push(chunk);
-    });
-
-    req.on('end', () => {
-      try {
-        const body = Buffer.concat(chunks);
-        const parts = [];
-
-        let start = 0;
-
-        while (true) {
-          const index = body.indexOf(boundary, start);
-
-          if (index === -1) {
-            break;
-          }
-
-          if (index > start) {
-            parts.push(
-              body.slice(start, index)
-            );
-          }
-
-          start =
-            index +
-            boundary.length;
-        }
-
-        const fields = {};
-        let file = null;
-
-        for (let part of parts) {
-          if (!part.length) continue;
-
-          if (
-            part.subarray(0, 2).toString() === '\r\n'
-          ) {
-            part = part.subarray(2);
-          }
-
-          if (
-            part.subarray(-2).toString() === '\r\n'
-          ) {
-            part = part.subarray(0, -2);
-          }
-
-          const separator =
-            Buffer.from('\r\n\r\n');
-
-          const split =
-            part.indexOf(separator);
-
-          if (split === -1) continue;
-
-          const headerText =
-            part
-              .subarray(0, split)
-              .toString('utf8');
-
-          const content =
-            part.subarray(
-              split + separator.length
-            );
-
-          const disposition =
-            headerText.match(
-              /Content-Disposition:[^\r\n]+/i
-            );
-
-          if (!disposition) continue;
-
-          const nameMatch =
-            disposition[0].match(
-              /name="([^"]+)"/i
-            );
-
-          if (!nameMatch) continue;
-
-          const fieldName =
-            nameMatch[1];
-
-          const filenameMatch =
-            disposition[0].match(
-              /filename="([^"]*)"/i
-            );
-
-          /*
-            FILE
-          */
-          if (filenameMatch && filenameMatch[1]) {
-            const filename =
-              path.basename(
-                filenameMatch[1]
-              );
-
-            const contentTypeMatch =
-              headerText.match(
-                /Content-Type:\s*([^\r\n]+)/i
-              );
-
-            const mime =
-              contentTypeMatch
-                ? contentTypeMatch[1].trim()
-                : 'application/octet-stream';
-
-            file = {
-              fieldName,
-              filename,
-              contentType: mime,
-              buffer: content
-            };
-          }
-
-          /*
-            NORMAL FIELD
-          */
-          else {
-            fields[fieldName] =
-              content.toString('utf8');
-          }
-        }
-
-        resolve({
-          fields,
-          file
-        });
-
-      } catch (e) {
-        reject(error(
-          'No se pudo procesar el formulario.',
-          400
-        ));
-      }
-    });
 
     req.on('error', reject);
   });
@@ -521,16 +421,21 @@ function parseMultipart(req, maxBytes = 12 * 1024 * 1024) {
 
 
 /* =========================================================
-   EMAIL
+   RESEND - TEST
 ========================================================= */
 
 async function sendTestEmail() {
+
   if (!resend) {
     throw error(
       'RESEND_API_KEY no está configurada en Render.',
       500
     );
   }
+
+  console.log(
+    'Enviando correo de prueba con Resend...'
+  );
 
   const result =
     await resend.emails.send({
@@ -549,12 +454,13 @@ async function sendTestEmail() {
 
         <p>
           Si recibes este mensaje,
-          la conexión Render → Resend funciona.
+          Render → Resend funciona correctamente.
         </p>
       `
     });
 
   if (result.error) {
+
     console.error(
       'RESEND TEST ERROR:',
       result.error
@@ -576,13 +482,20 @@ async function sendTestEmail() {
 }
 
 
+/* =========================================================
+   RESEND - ORDER EMAIL
+========================================================= */
+
 async function sendOrderEmail({
   orderId,
   name,
   phone,
   numbers,
-  file
+  receiptBase64,
+  receiptType,
+  receiptName
 }) {
+
   if (!resend) {
     throw error(
       'RESEND_API_KEY no está configurada en Render.',
@@ -590,22 +503,27 @@ async function sendOrderEmail({
     );
   }
 
+
   const approveUrl =
     `${BASE_URL}/api/approve?order=${encodeURIComponent(orderId)}`;
+
 
   const numbersText =
     numbers.join(', ');
 
-  const safe = value =>
-    String(value || '')
+
+  function safe(value) {
+    return String(value || '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
 
 
   const email = {
+
     from: RESEND_FROM,
 
     to: [EMAIL_TO],
@@ -615,11 +533,12 @@ async function sendOrderEmail({
 
     html: `
       <!DOCTYPE html>
+
       <html>
       <body style="
-        font-family: Arial, sans-serif;
-        line-height: 1.5;
-        color: #222;
+        font-family:Arial,sans-serif;
+        line-height:1.5;
+        color:#222;
       ">
 
         <h2>Nueva reserva</h2>
@@ -646,7 +565,7 @@ async function sendOrderEmail({
         </p>
 
         <p>
-          <strong>Números pagados:</strong>
+          <strong>Números:</strong>
           ${safe(numbersText)}
         </p>
 
@@ -674,7 +593,7 @@ async function sendOrderEmail({
         </p>
 
         <p>
-          O puedes abrir directamente:
+          Si el botón no funciona, abre:
         </p>
 
         <p>
@@ -688,18 +607,59 @@ async function sendOrderEmail({
 
 
   /*
-    ATTACHMENT
+    COMPROBANTE
   */
-  if (file && file.buffer && file.buffer.length) {
-    email.attachments = [
-      {
-        filename:
-          file.filename || 'comprobante',
-        content:
-          file.buffer
+
+  if (
+    receiptBase64 &&
+    typeof receiptBase64 === 'string'
+  ) {
+
+    const cleanBase64 =
+      receiptBase64.includes(',')
+        ? receiptBase64.split(',').pop()
+        : receiptBase64;
+
+    const buffer =
+      Buffer.from(
+        cleanBase64,
+        'base64'
+      );
+
+    if (buffer.length) {
+
+      email.attachments = [
+        {
+          filename:
+            receiptName ||
+            'comprobante.jpg',
+
+          content:
+            buffer
+        }
+      ];
+
+      /*
+        Resend necesita que el MIME
+        del archivo sea reconocible.
+      */
+      if (receiptType) {
+        email.attachments[0].contentType =
+          receiptType;
       }
-    ];
+    }
   }
+
+
+  console.log(
+    'Enviando reserva a Resend:',
+    {
+      orderId,
+      emailTo: EMAIL_TO,
+      from: RESEND_FROM,
+      numbers
+    }
+  );
 
 
   const result =
@@ -707,6 +667,7 @@ async function sendOrderEmail({
 
 
   if (result.error) {
+
     console.error(
       'RESEND ORDER ERROR:',
       result.error
@@ -734,595 +695,780 @@ async function sendOrderEmail({
    SERVER
 ========================================================= */
 
-const server = http.createServer(
-  async (req, res) => {
+const server =
+  http.createServer(
+    async (req, res) => {
 
-    try {
-      const url =
-        new URL(
-          req.url,
-          `http://${req.headers.host || 'localhost'}`
-        );
+      try {
 
-      const pathname =
-        url.pathname;
+        const url =
+          new URL(
+            req.url,
+            `http://${req.headers.host || 'localhost'}`
+          );
 
-
-      /* =====================================================
-         HEALTH CHECK
-      ===================================================== */
-
-      if (
-        req.method === 'GET' &&
-        pathname === '/api/health'
-      ) {
-        return json(res, 200, {
-          ok: true,
-          resendConfigured: !!RESEND_API_KEY,
-          emailTo: EMAIL_TO
-        });
-      }
+        const pathname =
+          url.pathname;
 
 
-      /* =====================================================
-         TEST RESEND
-      ===================================================== */
-
-      if (
-        req.method === 'GET' &&
-        pathname === '/api/test-email'
-      ) {
-        const data =
-          await sendTestEmail();
-
-        return json(res, 200, {
-          ok: true,
-          message:
-            'Correo enviado por Resend.',
-          data
-        });
-      }
-
-
-      /* =====================================================
-         GET NUMBERS
-      ===================================================== */
-
-      if (
-        req.method === 'GET' &&
-        pathname === '/api/numbers'
-      ) {
-        const list =
-          readNumbers();
-
-        return json(
-          res,
-          200,
-          publicNumbers(list)
-        );
-      }
-
-
-      /* =====================================================
-         RESERVE / RELEASE
-      ===================================================== */
-
-      if (
-        req.method === 'POST' &&
-        pathname === '/api/numbers'
-      ) {
-        const body =
-          await readJsonBody();
-
-        const action =
-          String(body.action || '');
+        /* =====================================================
+           HEALTH
+        ===================================================== */
 
         if (
-          action !== 'reserve' &&
-          action !== 'release'
+          req.method === 'GET' &&
+          pathname === '/api/health'
         ) {
-          throw error(
-            'Acción inválida.',
-            400
-          );
-        }
 
-        const list =
-          readNumbers();
-
-        apply(
-          list,
-          action,
-          body
-        );
-
-        writeNumbers(list);
-
-        return json(
-          res,
-          200,
-          publicNumbers(list)
-        );
-      }
-
-
-      /* =====================================================
-         PAY / SUBMIT
-      ===================================================== */
-
-      if (
-        req.method === 'POST' &&
-        pathname === '/api/pay'
-      ) {
-
-        /*
-          NUEVO:
-          Esperamos multipart/form-data.
-
-          Campos:
-            orderId
-            name
-            phone
-
-          Archivo:
-            Comprobante
-        */
-
-        const {
-          fields,
-          file
-        } = await parseMultipart(req);
-
-
-        const orderId =
-          String(fields.orderId || '').trim();
-
-        const name =
-          String(fields.name || '').trim();
-
-        const phone =
-          String(fields.phone || '').trim();
-
-
-        if (!orderId) {
-          throw error(
-            'Falta el número de pedido.',
-            400
-          );
-        }
-
-        if (!name) {
-          throw error(
-            'Falta el nombre.',
-            400
-          );
-        }
-
-        if (!phone) {
-          throw error(
-            'Falta el teléfono.',
-            400
-          );
-        }
-
-        if (!file || !file.buffer.length) {
-          throw error(
-            'Falta el comprobante de pago.',
-            400
+          return json(
+            res,
+            200,
+            {
+              ok: true,
+              numbersFile: fs.existsSync(FILE),
+              resendConfigured:
+                !!RESEND_API_KEY,
+              emailTo: EMAIL_TO,
+              resendFrom: RESEND_FROM,
+              baseUrl: BASE_URL
+            }
           );
         }
 
 
-        /*
-          Solo permitimos imágenes como comprobante.
-        */
+        /* =====================================================
+           TEST EMAIL
+        ===================================================== */
+
         if (
-          !/^image\//i.test(
-            file.contentType
-          )
+          req.method === 'GET' &&
+          pathname === '/api/test-email'
         ) {
-          throw error(
-            'El comprobante debe ser una imagen.',
-            400
+
+          const data =
+            await sendTestEmail();
+
+          return json(
+            res,
+            200,
+            {
+              ok: true,
+              message:
+                'Correo enviado por Resend.',
+              data
+            }
           );
         }
 
 
-        /*
-          Máximo 10 MB para el comprobante.
-        */
+        /* =====================================================
+           GET NUMBERS
+        ===================================================== */
+
         if (
-          file.buffer.length >
-          10 * 1024 * 1024
+          req.method === 'GET' &&
+          pathname === '/api/numbers'
         ) {
-          throw error(
-            'El comprobante supera el límite de 10 MB.',
-            413
+
+          const list =
+            readNumbers();
+
+          return json(
+            res,
+            200,
+            publicNumbers(list)
           );
         }
 
 
-        /*
-          Buscar la reserva antes de modificarla.
-        */
-        let list =
-          readNumbers();
+        /* =====================================================
+           POST NUMBERS
+           reserve / release / approve
+        ===================================================== */
 
-        const reserved =
-          list.filter(
-            n =>
-              String(n.orderId || '') ===
-              orderId
-          );
+        if (
+          req.method === 'POST' &&
+          pathname === '/api/numbers'
+        ) {
 
+          const body =
+            await readJsonBody();
 
-        if (!reserved.length) {
-          throw error(
-            'La reserva no existe o ya expiró.',
-            404
-          );
-        }
+          const action =
+            String(body.action || '');
 
 
-        const numbers =
-          reserved.map(
-            n => String(n.num)
-          );
+          if (
+            action !== 'reserve' &&
+            action !== 'release' &&
+            action !== 'approve'
+          ) {
+
+            throw error(
+              'Acción inválida.',
+              400
+            );
+          }
 
 
-        /*
-          Actualizar la reserva.
-        */
-        list =
+          const list =
+            readNumbers();
+
+
           apply(
             list,
-            'submit',
+            action,
+            body
+          );
+
+
+          writeNumbers(list);
+
+
+          /*
+            MUY IMPORTANTE:
+            devolvemos DIRECTAMENTE el arreglo,
+            porque el index.html original espera
+            r.json() === arreglo de números.
+          */
+
+          return json(
+            res,
+            200,
+            publicNumbers(list)
+          );
+        }
+
+
+        /* =====================================================
+           PAY
+        ===================================================== */
+
+        if (
+          req.method === 'POST' &&
+          pathname === '/api/pay'
+        ) {
+
+          /*
+            El index.html original manda JSON:
+
             {
               orderId,
               name,
-              phone
+              phone,
+              receipt: "BASE64..."
+            }
+          */
+
+          const body =
+            await readJsonBody();
+
+
+          const orderId =
+            String(body.orderId || '')
+              .trim();
+
+          const name =
+            String(body.name || '')
+              .trim();
+
+          const phone =
+            String(body.phone || '')
+              .trim();
+
+          const receipt =
+            typeof body.receipt === 'string'
+              ? body.receipt
+              : '';
+
+
+          if (!orderId) {
+            throw error(
+              'Falta el número de pedido.',
+              400
+            );
+          }
+
+
+          if (!name) {
+            throw error(
+              'Falta el nombre.',
+              400
+            );
+          }
+
+
+          if (!phone) {
+            throw error(
+              'Falta el teléfono.',
+              400
+            );
+          }
+
+
+          if (!receipt) {
+            throw error(
+              'Falta el comprobante de pago.',
+              400
+            );
+          }
+
+
+          /*
+            El frontend convierte el comprobante
+            a JPEG usando canvas, por lo que normalmente
+            llegará como base64 puro.
+          */
+
+          let receiptType =
+            'image/jpeg';
+
+
+          let receiptBase64 =
+            receipt;
+
+
+          /*
+            También aceptamos Data URLs por seguridad.
+          */
+
+          const dataUrlMatch =
+            receipt.match(
+              /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/
+            );
+
+
+          if (dataUrlMatch) {
+            receiptType =
+              dataUrlMatch[1];
+
+            receiptBase64 =
+              dataUrlMatch[2];
+          }
+
+
+          let receiptBuffer;
+
+          try {
+
+            receiptBuffer =
+              Buffer.from(
+                receiptBase64,
+                'base64'
+              );
+
+          } catch (e) {
+
+            throw error(
+              'El comprobante no es válido.',
+              400
+            );
+          }
+
+
+          if (
+            !receiptBuffer.length
+          ) {
+            throw error(
+              'El comprobante está vacío.',
+              400
+            );
+          }
+
+
+          /*
+            Máximo 10 MB.
+          */
+
+          if (
+            receiptBuffer.length >
+            10 * 1024 * 1024
+          ) {
+            throw error(
+              'El comprobante supera el límite de 10 MB.',
+              413
+            );
+          }
+
+
+          /*
+            Buscar la reserva.
+          */
+
+          let list =
+            readNumbers();
+
+
+          const reserved =
+            list.filter(
+              n =>
+                String(n.orderId || '') ===
+                orderId
+            );
+
+
+          if (!reserved.length) {
+            throw error(
+              'La reserva no existe o ya expiró.',
+              404
+            );
+          }
+
+
+          const numbers =
+            reserved.map(
+              n => String(n.num)
+            );
+
+
+          /*
+            Guardar nombre y teléfono
+            antes de enviar el correo.
+          */
+
+          list =
+            apply(
+              list,
+              'submit',
+              {
+                orderId,
+                name,
+                phone
+              }
+            );
+
+
+          writeNumbers(list);
+
+
+          /*
+            Enviar correo.
+          */
+
+          let emailData;
+
+          try {
+
+            emailData =
+              await sendOrderEmail({
+                orderId,
+                name,
+                phone,
+                numbers,
+                receiptBase64,
+                receiptType,
+                receiptName:
+                  `comprobante-${orderId}.jpg`
+              });
+
+          } catch (mailError) {
+
+            console.error(
+              'FALLO EN ENVÍO DE CORREO:',
+              mailError
+            );
+
+
+            return json(
+              res,
+              502,
+              {
+                ok: false,
+                stage: 'email',
+                error:
+                  mailError.message ||
+                  String(mailError)
+              }
+            );
+          }
+
+
+          /*
+            Devolvemos DIRECTAMENTE el arreglo
+            porque el index.html original hace:
+
+              DB = j;
+
+            y espera que j sea el arreglo.
+          */
+
+          return json(
+            res,
+            200,
+            list.map(n => ({
+              num: n.num,
+              status: n.status,
+              name: n.name || '',
+              phone: n.phone || '',
+              confirm: !!n.confirm,
+              orderId: n.orderId || '',
+              at: Number(n.at || 0)
+            }))
+          );
+        }
+
+
+        /* =====================================================
+           GET APPROVE
+        ===================================================== */
+
+        if (
+          req.method === 'GET' &&
+          pathname === '/api/approve'
+        ) {
+
+          const orderId =
+            String(
+              url.searchParams.get('order') ||
+              ''
+            ).trim();
+
+
+          if (!orderId) {
+
+            return html(
+              res,
+              400,
+              `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="utf-8">
+                <title>Error</title>
+              </head>
+
+              <body style="
+                font-family:Arial,sans-serif;
+                padding:40px;
+              ">
+
+                <h1>Error</h1>
+
+                <p>
+                  Falta el ID del pedido.
+                </p>
+
+              </body>
+              </html>
+              `
+            );
+          }
+
+
+          const list =
+            readNumbers();
+
+
+          const found =
+            list.some(
+              n =>
+                String(n.orderId || '') ===
+                orderId
+            );
+
+
+          if (!found) {
+
+            return html(
+              res,
+              404,
+              `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="utf-8">
+                <title>Pedido no encontrado</title>
+              </head>
+
+              <body style="
+                font-family:Arial,sans-serif;
+                padding:40px;
+              ">
+
+                <h1>Pedido no encontrado</h1>
+
+                <p>
+                  El pedido
+                  <strong>${orderId}</strong>
+                  no existe o ya no está disponible.
+                </p>
+
+              </body>
+              </html>
+              `
+            );
+          }
+
+
+          const approved =
+            apply(
+              list,
+              'approve',
+              { orderId }
+            );
+
+
+          writeNumbers(approved);
+
+
+          return html(
+            res,
+            200,
+            `
+            <!DOCTYPE html>
+
+            <html>
+
+            <head>
+
+              <meta charset="utf-8">
+
+              <meta
+                name="viewport"
+                content="width=device-width,initial-scale=1"
+              >
+
+              <title>Reserva aprobada</title>
+
+            </head>
+
+
+            <body style="
+              margin:0;
+              background:#f5f5f5;
+              font-family:Arial,sans-serif;
+            ">
+
+              <div style="
+                max-width:600px;
+                margin:80px auto;
+                background:#fff;
+                padding:40px;
+                border-radius:12px;
+                box-shadow:0 5px 30px rgba(0,0,0,.08);
+              ">
+
+                <h1>
+                  Reserva aprobada
+                </h1>
+
+                <p>
+                  El pedido
+                  <strong>${orderId}</strong>
+                  ha sido aprobado.
+                </p>
+
+                <p>
+                  Los números asociados ahora
+                  están marcados como pagados.
+                </p>
+
+              </div>
+
+            </body>
+
+            </html>
+            `
+          );
+        }
+
+
+        /* =====================================================
+           STATIC FILES
+        ===================================================== */
+
+        let filePath;
+
+
+        if (pathname === '/') {
+
+          filePath =
+            path.join(
+              __dirname,
+              'index.html'
+            );
+
+        }
+
+        else if (
+          pathname === '/index.html'
+        ) {
+
+          filePath =
+            path.join(
+              __dirname,
+              'index.html'
+            );
+
+        }
+
+        else if (
+          pathname === '/qr.jpg'
+        ) {
+
+          filePath =
+            path.join(
+              __dirname,
+              'qr.jpg'
+            );
+
+        }
+
+        else if (
+          pathname === '/qr.png'
+        ) {
+
+          filePath =
+            path.join(
+              __dirname,
+              'qr.png'
+            );
+
+        }
+
+        else {
+
+          filePath =
+            path.join(
+              __dirname,
+              pathname.replace(
+                /^\/+/,
+                ''
+              )
+            );
+        }
+
+
+        /*
+          Seguridad:
+          impedir salir de la carpeta
+          del proyecto mediante ../
+        */
+
+        const root =
+          path.resolve(__dirname);
+
+        const resolved =
+          path.resolve(filePath);
+
+
+        if (
+          resolved !== root &&
+          !resolved.startsWith(root + path.sep)
+        ) {
+
+          return text(
+            res,
+            403,
+            'Forbidden'
+          );
+        }
+
+
+        if (
+          !fs.existsSync(resolved) ||
+          !fs.statSync(resolved).isFile()
+        ) {
+
+          return text(
+            res,
+            404,
+            'Not found'
+          );
+        }
+
+
+        const ext =
+          path.extname(resolved)
+            .toLowerCase();
+
+
+        const types = {
+
+          '.html':
+            'text/html; charset=utf-8',
+
+          '.css':
+            'text/css; charset=utf-8',
+
+          '.js':
+            'application/javascript; charset=utf-8',
+
+          '.json':
+            'application/json; charset=utf-8',
+
+          '.jpg':
+            'image/jpeg',
+
+          '.jpeg':
+            'image/jpeg',
+
+          '.png':
+            'image/png',
+
+          '.webp':
+            'image/webp',
+
+          '.svg':
+            'image/svg+xml'
+        };
+
+
+        const contentType =
+          types[ext] ||
+          'application/octet-stream';
+
+
+        const data =
+          fs.readFileSync(resolved);
+
+
+        res.writeHead(
+          200,
+          {
+            'Content-Type':
+              contentType,
+
+            'Content-Length':
+              data.length
+          }
+        );
+
+
+        res.end(data);
+
+      } catch (e) {
+
+        console.error(
+          'SERVER ERROR:',
+          e
+        );
+
+
+        const status =
+          Number(e.status) || 500;
+
+
+        if (!res.headersSent) {
+
+          json(
+            res,
+            status,
+            {
+              ok: false,
+              error:
+                e.message ||
+                'Internal server error'
             }
           );
 
+        } else {
 
-        /*
-          Guardamos primero el estado.
-        */
-        writeNumbers(list);
-
-
-        /*
-          Enviar correo.
-        */
-        let emailData;
-
-        try {
-          emailData =
-            await sendOrderEmail({
-              orderId,
-              name,
-              phone,
-              numbers,
-              file
-            });
-
-        } catch (mailError) {
-
-          /*
-            IMPORTANTE:
-
-            Si el correo falla, devolvemos error.
-            Los números ya quedaron reservados
-            con nombre/teléfono.
-
-            Esto permite ver el error real de Resend.
-          */
-
-          console.error(
-            'FALLO EN ENVÍO DE CORREO:',
-            mailError
-          );
-
-          return json(res, 502, {
-            ok: false,
-            stage: 'email',
-            error:
-              mailError.message ||
-              String(mailError)
-          });
+          res.end();
         }
-
-
-        return json(res, 200, {
-          ok: true,
-          message:
-            'Reserva enviada correctamente.',
-          orderId,
-          numbers,
-          emailId:
-            emailData &&
-            emailData.id
-              ? emailData.id
-              : null
-        });
-      }
-
-
-      /* =====================================================
-         APPROVE
-      ===================================================== */
-
-      if (
-        req.method === 'GET' &&
-        pathname === '/api/approve'
-      ) {
-
-        const orderId =
-          String(
-            url.searchParams.get('order') ||
-            ''
-          ).trim();
-
-        if (!orderId) {
-          return html(
-            res,
-            400,
-            `
-            <!DOCTYPE html>
-            <html>
-            <body style="
-              font-family:Arial;
-              padding:40px;
-            ">
-              <h1>Error</h1>
-              <p>Falta el ID del pedido.</p>
-            </body>
-            </html>
-            `
-          );
-        }
-
-
-        let list =
-          readNumbers();
-
-
-        const found =
-          list.some(
-            n =>
-              String(n.orderId || '') ===
-              orderId
-          );
-
-
-        if (!found) {
-          return html(
-            res,
-            404,
-            `
-            <!DOCTYPE html>
-            <html>
-            <body style="
-              font-family:Arial;
-              padding:40px;
-            ">
-              <h1>Pedido no encontrado</h1>
-
-              <p>
-                El pedido
-                <strong>${orderId}</strong>
-                no existe.
-              </p>
-            </body>
-            </html>
-            `
-          );
-        }
-
-
-        list =
-          apply(
-            list,
-            'approve',
-            { orderId }
-          );
-
-
-        writeNumbers(list);
-
-
-        return html(
-          res,
-          200,
-          `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport"
-              content="width=device-width,initial-scale=1">
-            <title>Reserva aprobada</title>
-          </head>
-
-          <body style="
-            margin:0;
-            background:#f5f5f5;
-            font-family:Arial,sans-serif;
-          ">
-
-            <div style="
-              max-width:600px;
-              margin:80px auto;
-              background:#fff;
-              padding:40px;
-              border-radius:12px;
-              box-shadow:0 5px 30px rgba(0,0,0,.08);
-            ">
-
-              <h1>Reserva aprobada</h1>
-
-              <p>
-                El pedido
-                <strong>${orderId}</strong>
-                ha sido aprobado.
-              </p>
-
-              <p>
-                Los números asociados ahora están
-                marcados como no disponibles.
-              </p>
-
-            </div>
-
-          </body>
-          </html>
-          `
-        );
-      }
-
-
-      /* =====================================================
-         STATIC FILES
-      ===================================================== */
-
-      let filePath;
-
-      if (pathname === '/') {
-        filePath =
-          path.join(
-            __dirname,
-            'index.html'
-          );
-      }
-
-      else if (
-        pathname === '/index.html'
-      ) {
-        filePath =
-          path.join(
-            __dirname,
-            'index.html'
-          );
-      }
-
-      else if (
-        pathname === '/qr.jpg'
-      ) {
-        filePath =
-          path.join(
-            __dirname,
-            'qr.jpg'
-          );
-      }
-
-      else if (
-        pathname === '/qr.png'
-      ) {
-        filePath =
-          path.join(
-            __dirname,
-            'qr.png'
-          );
-      }
-
-      else {
-        filePath =
-          path.join(
-            __dirname,
-            pathname.replace(/^\/+/, '')
-          );
-      }
-
-
-      /*
-        Evitar salir del directorio del proyecto.
-      */
-      const root =
-        path.resolve(__dirname);
-
-      const resolved =
-        path.resolve(filePath);
-
-      if (
-        !resolved.startsWith(root)
-      ) {
-        return text(
-          res,
-          403,
-          'Forbidden'
-        );
-      }
-
-
-      if (
-        !fs.existsSync(resolved) ||
-        !fs.statSync(resolved).isFile()
-      ) {
-        return text(
-          res,
-          404,
-          'Not found'
-        );
-      }
-
-
-      const ext =
-        path.extname(resolved)
-          .toLowerCase();
-
-
-      const types = {
-        '.html': 'text/html; charset=utf-8',
-        '.css': 'text/css; charset=utf-8',
-        '.js': 'application/javascript; charset=utf-8',
-        '.json': 'application/json; charset=utf-8',
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.webp': 'image/webp',
-        '.svg': 'image/svg+xml'
-      };
-
-
-      const contentType =
-        types[ext] ||
-        'application/octet-stream';
-
-
-      const data =
-        fs.readFileSync(resolved);
-
-
-      res.writeHead(200, {
-        'Content-Type': contentType,
-        'Content-Length': data.length
-      });
-
-      res.end(data);
-
-    } catch (e) {
-
-      console.error(
-        'SERVER ERROR:',
-        e
-      );
-
-      const status =
-        Number(e.status) || 500;
-
-      if (!res.headersSent) {
-        json(res, status, {
-          ok: false,
-          error:
-            e.message ||
-            'Internal server error'
-        });
-      } else {
-        res.end();
       }
     }
-  }
-);
+  );
 
 
 /* =========================================================
@@ -1332,6 +1478,7 @@ const server = http.createServer(
 server.listen(
   PORT,
   () => {
+
     console.log(
       `Server running on port ${PORT}`
     );
@@ -1352,6 +1499,14 @@ server.listen(
       `RESEND_API_KEY: ${
         RESEND_API_KEY
           ? 'CONFIGURED'
+          : 'MISSING'
+      }`
+    );
+
+    console.log(
+      `numbers.json: ${
+        fs.existsSync(FILE)
+          ? 'FOUND'
           : 'MISSING'
       }`
     );
