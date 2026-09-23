@@ -421,6 +421,169 @@ function readJsonBody(
 
 
 /* =========================================================
+   MULTIPART/FORM-DATA BODY
+
+   El index.html envía el comprobante con FormData
+   (multipart/form-data), no con JSON. Este parser mínimo
+   lee los campos de texto y el archivo sin dependencias
+   externas.
+========================================================= */
+
+function readMultipartBody(
+  req,
+  maxBytes = 15 * 1024 * 1024
+) {
+  return new Promise((resolve, reject) => {
+
+    const contentType =
+      req.headers['content-type'] || '';
+
+    const boundaryMatch =
+      contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
+
+    if (!boundaryMatch) {
+      reject(error(
+        'Content-Type multipart inválido.',
+        400
+      ));
+      return;
+    }
+
+    const boundary =
+      '--' + (boundaryMatch[1] || boundaryMatch[2]).trim();
+
+    let total = 0;
+    const chunks = [];
+
+    req.on('data', chunk => {
+
+      total += chunk.length;
+
+      if (total > maxBytes) {
+        reject(error(
+          'Request demasiado grande.',
+          413
+        ));
+
+        req.destroy();
+        return;
+      }
+
+      chunks.push(chunk);
+    });
+
+    req.on('error', reject);
+
+    req.on('end', () => {
+
+      try {
+
+        const buffer =
+          Buffer.concat(chunks);
+
+        const boundaryBuf =
+          Buffer.from(`\r\n${boundary}`, 'utf8');
+
+        const firstBoundaryBuf =
+          Buffer.from(boundary, 'utf8');
+
+        const fields = {};
+        const files = {};
+
+        let start =
+          buffer.indexOf(firstBoundaryBuf) +
+          firstBoundaryBuf.length;
+
+        while (true) {
+
+          const nextBoundaryIndex =
+            buffer.indexOf(boundaryBuf, start);
+
+          if (nextBoundaryIndex === -1) {
+            break;
+          }
+
+          const part =
+            buffer.slice(start, nextBoundaryIndex);
+
+          const headerEndIndex =
+            part.indexOf('\r\n\r\n');
+
+          if (headerEndIndex !== -1) {
+
+            const rawHeaders =
+              part
+                .slice(0, headerEndIndex)
+                .toString('utf8');
+
+            const content =
+              part.slice(headerEndIndex + 4);
+
+            const nameMatch =
+              rawHeaders.match(
+                /name="([^"]*)"/i
+              );
+
+            const filenameMatch =
+              rawHeaders.match(
+                /filename="([^"]*)"/i
+              );
+
+            const typeMatch =
+              rawHeaders.match(
+                /Content-Type:\s*([^\r\n]+)/i
+              );
+
+            const fieldName =
+              nameMatch ? nameMatch[1] : '';
+
+            if (fieldName) {
+
+              if (filenameMatch) {
+
+                files[fieldName] = {
+                  filename: filenameMatch[1] || '',
+                  contentType:
+                    typeMatch
+                      ? typeMatch[1].trim()
+                      : 'application/octet-stream',
+                  data: content
+                };
+
+              } else {
+
+                fields[fieldName] =
+                  content.toString('utf8');
+              }
+            }
+          }
+
+          start =
+            nextBoundaryIndex + boundaryBuf.length;
+
+          const tail =
+            buffer.slice(start, start + 2).toString('utf8');
+
+          if (tail === '--') {
+            break;
+          }
+        }
+
+        resolve({ fields, files });
+
+      } catch (e) {
+
+        reject(error(
+          'No se pudo leer el formulario.',
+          400
+        ));
+      }
+    });
+  });
+}
+
+
+/* =========================================================
    RESEND - TEST
 ========================================================= */
 
@@ -792,7 +955,7 @@ const server =
         ) {
 
           const body =
-            await readJsonBody();
+            await readJsonBody(req);
 
           const action =
             String(body.action || '');
@@ -850,36 +1013,45 @@ const server =
         ) {
 
           /*
-            El index.html original manda JSON:
+            El index.html envía multipart/form-data
+            (FormData del navegador) con los campos:
 
-            {
-              orderId,
-              name,
-              phone,
-              receipt: "BASE64..."
-            }
+              orderId
+              name
+              phone
+              Comprobante  (archivo)
           */
 
-          const body =
-            await readJsonBody();
+          const contentType =
+            req.headers['content-type'] || '';
+
+          if (
+            !/multipart\/form-data/i.test(contentType)
+          ) {
+            throw error(
+              'Se esperaba multipart/form-data.',
+              400
+            );
+          }
+
+          const { fields, files } =
+            await readMultipartBody(req);
 
 
           const orderId =
-            String(body.orderId || '')
+            String(fields.orderId || '')
               .trim();
 
           const name =
-            String(body.name || '')
+            String(fields.name || '')
               .trim();
 
           const phone =
-            String(body.phone || '')
+            String(fields.phone || '')
               .trim();
 
-          const receipt =
-            typeof body.receipt === 'string'
-              ? body.receipt
-              : '';
+          const receiptFile =
+            files.Comprobante || null;
 
 
           if (!orderId) {
@@ -906,7 +1078,11 @@ const server =
           }
 
 
-          if (!receipt) {
+          if (
+            !receiptFile ||
+            !receiptFile.data ||
+            !receiptFile.data.length
+          ) {
             throw error(
               'Falta el comprobante de pago.',
               400
@@ -914,66 +1090,15 @@ const server =
           }
 
 
-          /*
-            El frontend convierte el comprobante
-            a JPEG usando canvas, por lo que normalmente
-            llegará como base64 puro.
-          */
+          const receiptBuffer =
+            receiptFile.data;
 
-          let receiptType =
+          const receiptType =
+            receiptFile.contentType ||
             'image/jpeg';
 
-
-          let receiptBase64 =
-            receipt;
-
-
-          /*
-            También aceptamos Data URLs por seguridad.
-          */
-
-          const dataUrlMatch =
-            receipt.match(
-              /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/
-            );
-
-
-          if (dataUrlMatch) {
-            receiptType =
-              dataUrlMatch[1];
-
-            receiptBase64 =
-              dataUrlMatch[2];
-          }
-
-
-          let receiptBuffer;
-
-          try {
-
-            receiptBuffer =
-              Buffer.from(
-                receiptBase64,
-                'base64'
-              );
-
-          } catch (e) {
-
-            throw error(
-              'El comprobante no es válido.',
-              400
-            );
-          }
-
-
-          if (
-            !receiptBuffer.length
-          ) {
-            throw error(
-              'El comprobante está vacío.',
-              400
-            );
-          }
+          const receiptBase64 =
+            receiptBuffer.toString('base64');
 
 
           /*
@@ -1058,6 +1183,7 @@ const server =
                 receiptBase64,
                 receiptType,
                 receiptName:
+                  receiptFile.filename ||
                   `comprobante-${orderId}.jpg`
               });
 
