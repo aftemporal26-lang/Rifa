@@ -1467,17 +1467,20 @@ ${approvalLink}`
     renderGrid();
 
   } catch (err) {
+    console.error('ERROR COMPLETO:', err);
+    
+    alert(
+      'ERROR REAL:\n\n' +
+      'Nombre: ' + (err.name || 'desconocido') + '\n' +
+      'Mensaje: ' + (err.message || String(err)) + '\n\n' +
+      'Stack:\n' + (err.stack || 'No disponible')
+    );
   
-      console.error(
-        'ERROR COMPLETO:',
-        err
-      );
-  
-      toast(
-        'No pudimos enviar tu comprobante',
-        err.message || String(err),
-        'err'
-      );
+    toast(
+      'Error',
+      err.message || String(err),
+      'err'
+    );
   }
 
   busy = false;
