@@ -74,6 +74,13 @@ form{padding-top:20px}
 .toast.on{transform:translate(-50%,0)}.toast.err{border-color:var(--bad)}
 .toast b{display:block;font-family:var(--f1)}.toast span{color:#C4CBDB;font-size:14px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.info{background:#fff;border-radius:22px;box-shadow:var(--sh);padding:22px 24px;margin-bottom:16px}
+.info .vals{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.info .val{background:var(--paper);border-radius:14px;padding:14px 18px}
+.info .val small{display:block;color:var(--mute);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.info .val strong{display:block;font:800 26px var(--f1);letter-spacing:-.01em}
+.info .val.prize strong{color:var(--gold)}
+.info p{margin:14px 0 0;text-align:center;color:var(--ink);font-weight:500}
 </style>
 </head>
 <body>
@@ -83,7 +90,15 @@ form{padding-top:20px}
   <button class="buy" id="buy">Comprar</button>
 </div></div>
 
-<main class="wrap"><div class="card">
+<main class="wrap">
+<div class="info">
+  <div class="vals">
+    <div class="val"><small>Valor del número</small><strong>$10.000 COP</strong></div>
+    <div class="val prize"><small>Premio</small><strong>$200.000 COP</strong></div>
+  </div>
+  <p>Juega el martes 13 de octubre con las 2 ultimas cifras del premio mayor de la lotería de la Cruz Roja.</p>
+</div>
+<div class="card">
   <div class="warn" id="warn" hidden></div>
   <div class="legend" id="legend"></div>
   <div id="grid" aria-label="Números (solo referencia)"></div>
