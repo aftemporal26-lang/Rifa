@@ -1221,15 +1221,19 @@ const server =
           return json(
             res,
             200,
-            list.map(n => ({
-              num: n.num,
-              status: n.status,
-              name: n.name || '',
-              phone: n.phone || '',
-              confirm: !!n.confirm,
-              orderId: n.orderId || '',
-              at: Number(n.at || 0)
-            }))
+            {
+              ok: true,
+              orderId,
+              numbers: list.map(n => ({
+                num: n.num,
+                status: n.status,
+                name: n.name || '',
+                phone: n.phone || '',
+                confirm: !!n.confirm,
+                orderId: n.orderId || '',
+                at: Number(n.at || 0)
+              }))
+            }
           );
         }
 
