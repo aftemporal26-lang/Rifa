@@ -100,6 +100,7 @@ form{padding-top:20px}
 
     <div class="step" id="s2">
       <div class="qr"><img id="qrimg" alt="Código QR de pago" src="./qr.jpg"></div>
+      <p style="text-align:center;font-size:22px;font-weight:700;margin:0 0 14px">Llave: @3005759176</p>
       <p class="note">Se solicitara el comprobante de pago, porfavor guarda una imagen del comprobante.</p>
       <button class="btn full gold" id="paid" type="button">Pagado</button>
 
@@ -655,7 +656,7 @@ function step(n){
   $('#ttl').textContent=
     n===1
       ? 'Elige tus números'
-      : 'Paga con QR';
+      : 'Paga con QR o llave';
 
   $('#foot').hidden=
     n!==1;
