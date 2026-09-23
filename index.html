@@ -1376,13 +1376,19 @@ ${approvalLink}`
           CONFIG.FORMSPREE,
           {
             method: 'POST',
-            body: fd,
-            headers: {
-              Accept:
-                'application/json'
-            }
+            body: fd
           }
         );
+      
+      console.log(
+        'Formspree status:',
+        r.status
+      );
+      
+      console.log(
+        'Formspree response:',
+        await r.clone().text()
+      );
 
 
       /*
