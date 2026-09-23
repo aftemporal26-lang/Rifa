@@ -1371,24 +1371,24 @@ ${approvalLink}`
       );
 
 
-      const r =
-        await fetch(
-          CONFIG.FORMSPREE,
-          {
-            method: 'POST',
-            body: fd
-          }
-        );
-      
-      console.log(
-        'Formspree status:',
-        r.status
+    const testResponse = await fetch(
+      'https://formspree.io/f/xwlpbwjw',
+      {
+        method: 'POST',
+        body: fd
+      }
+    );
+    
+    const testText = await testResponse.text();
+    
+    console.log('FORMspree HTTP:', testResponse.status);
+    console.log('FORMspree RESPUESTA:', testText);
+    
+    if (!testResponse.ok) {
+      throw new Error(
+        `Formspree respondió ${testResponse.status}: ${testText}`
       );
-      
-      console.log(
-        'Formspree response:',
-        await r.clone().text()
-      );
+    }
 
 
       /*
