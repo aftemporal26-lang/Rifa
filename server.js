@@ -4,10 +4,11 @@ const http=require('http'),fs=require('fs'),path=require('path'),tls=require('tl
 const PORT=+process.env.PORT||3000, FILE=path.join(__dirname,'numbers.json');
 const C={
   user: 'andryphoenix.official@gmail.com', 
-  pass: 'hzrd dfvk laev wpqr',
+  pass: 'hzrddfvklaevwpqr',
   to: 'angierodca@gmail.com',
-  base: (process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/\$/, '')
+  base: 'https://rifa-53mv.onrender.com'.replace(/\/$/, '')
 };
+
 
 
 const free=n=>n&&(n.status==='available'||(n.status==='reserved'&&!n.name&&Date.now()-(n.at||0)>9e5)); // reservas sin pagar vencen a los 15 min
