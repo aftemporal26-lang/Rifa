@@ -1,1708 +1,1383 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <title>Reserva de números</title>
-
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      min-height: 100%;
-      font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-      background: #0d0d0d;
-      color: #ffffff;
-    }
-
-    body {
-      min-height: 100vh;
-    }
-
-    .wrap {
-      width: 100%;
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 24px;
-    }
-
-    .card {
-      background: #171717;
-      border: 1px solid #2b2b2b;
-      border-radius: 18px;
-      padding: 24px;
-      margin-bottom: 20px;
-      box-shadow:
-        0 10px 35px rgba(0, 0, 0, 0.35);
-    }
-
-    h1,
-    h2,
-    h3 {
-      margin-top: 0;
-    }
-
-    h1 {
-      font-size: 30px;
-      margin-bottom: 8px;
-    }
-
-    h2 {
-      font-size: 22px;
-    }
-
-    p {
-      color: #cfcfcf;
-      line-height: 1.55;
-    }
-
-    .numbers {
-      display: grid;
-      grid-template-columns:
-        repeat(auto-fill, minmax(65px, 1fr));
-      gap: 8px;
-      margin-top: 18px;
-    }
-
-    .number {
-      border: 1px solid #3a3a3a;
-      background: #222222;
-      color: #ffffff;
-      border-radius: 10px;
-      min-height: 52px;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: bold;
-      transition: 0.15s ease;
-    }
-
-    .number:hover {
-      background: #2d2d2d;
-    }
-
-    .number.selected {
-      background: #ffffff;
-      color: #000000;
-      border-color: #ffffff;
-    }
-
-    .number.unavailable {
-      opacity: 0.25;
-      cursor: not-allowed;
-      text-decoration: line-through;
-    }
-
-    .number.reserved {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-
-    .summary {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 15px;
-      flex-wrap: wrap;
-      margin-top: 20px;
-      padding-top: 18px;
-      border-top: 1px solid #303030;
-    }
-
-    .count {
-      font-size: 18px;
-      font-weight: bold;
-    }
-
-    button {
-      border: 0;
-      border-radius: 10px;
-      padding: 13px 20px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      background: #ffffff;
-      color: #000000;
-    }
-
-    button:hover {
-      opacity: 0.9;
-    }
-
-    button:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    .primary {
-      width: 100%;
-      margin-top: 18px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 7px;
-      font-weight: bold;
-    }
-
-    input[type="text"],
-    input[type="tel"] {
-      width: 100%;
-      padding: 14px;
-      border-radius: 9px;
-      border: 1px solid #3a3a3a;
-      background: #0f0f0f;
-      color: #ffffff;
-      font-size: 16px;
-      outline: none;
-    }
-
-    input[type="text"]:focus,
-    input[type="tel"]:focus {
-      border-color: #ffffff;
-    }
-
-    .field {
-      margin-bottom: 18px;
-    }
-
-    .receipt {
-      border: 1px dashed #555555;
-      border-radius: 12px;
-      padding: 18px;
-      text-align: center;
-      cursor: pointer;
-      background: #111111;
-    }
-
-    .receipt:hover {
-      background: #191919;
-    }
-
-    .receipt img {
-      display: none;
-      max-width: 100%;
-      max-height: 300px;
-      margin: 15px auto 0;
-      border-radius: 10px;
-    }
-
-    .receipt.has-file img {
-      display: block;
-    }
-
-    .receipt-name {
-      color: #bdbdbd;
-      margin-top: 8px;
-      word-break: break-word;
-    }
-
-    .qr {
-      display: block;
-      max-width: 280px;
-      width: 100%;
-      margin: 20px auto;
-      border-radius: 12px;
-      background: #ffffff;
-      padding: 10px;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .notice {
-      padding: 13px 15px;
-      border-radius: 10px;
-      background: #222222;
-      border: 1px solid #333333;
-      margin-bottom: 18px;
-      color: #d8d8d8;
-    }
-
-    .error {
-      background: #301717;
-      border-color: #642525;
-      color: #ffbdbd;
-    }
-
-    .success {
-      background: #17301e;
-      border-color: #285b36;
-      color: #bce8c7;
-    }
-
-    .selected-list {
-      color: #dddddd;
-      word-break: break-word;
-      line-height: 1.6;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 35px;
-      color: #bdbdbd;
-    }
-
-    .small {
-      font-size: 13px;
-      color: #929292;
-    }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.78);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 1000;
-    }
-
-    .modal-card {
-      width: 100%;
-      max-width: 520px;
-      max-height: 90vh;
-      overflow-y: auto;
-      background: #171717;
-      border: 1px solid #333333;
-      border-radius: 18px;
-      padding: 25px;
-    }
-
-    .modal-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .modal-actions button {
-      flex: 1;
-    }
-
-    .secondary {
-      background: #2a2a2a;
-      color: #ffffff;
-    }
-
-    .toast {
-      position: fixed;
-      left: 50%;
-      bottom: 25px;
-      transform: translateX(-50%);
-      background: #ffffff;
-      color: #000000;
-      padding: 13px 18px;
-      border-radius: 10px;
-      font-weight: bold;
-      z-index: 2000;
-      box-shadow:
-        0 8px 30px rgba(0, 0, 0, 0.4);
-      max-width: calc(100% - 40px);
-      text-align: center;
-    }
-
-    @media (max-width: 600px) {
-      .wrap {
-        padding: 14px;
-      }
-
-      .card {
-        padding: 18px;
-        border-radius: 14px;
-      }
-
-      h1 {
-        font-size: 25px;
-      }
-
-      .numbers {
-        grid-template-columns:
-          repeat(auto-fill, minmax(55px, 1fr));
-      }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reserva tu número</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#12182B;--paper:#F3F5F9;--line:#DDE2EC;--mute:#6B7488;--ok:#0E8F6B;--okbg:#E6F5EF;--hold:#9A6A14;--gold:#B98A2E;--bad:#C0392B;--sh:0 1px 2px rgba(18,24,43,.06),0 16px 36px -14px rgba(18,24,43,.2);--f1:'Bricolage Grotesque',system-ui,sans-serif;--f2:'Instrument Sans',system-ui,sans-serif}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 var(--f2)}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto}
+.hero{background:var(--ink);color:#fff;padding:44px 20px 80px}
+.hero .wrap{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-end;justify-content:space-between}
+h1{font:800 clamp(34px,6vw,54px)/1.02 var(--f1);letter-spacing:-.02em;margin:0 0 12px}
+.hero p{margin:0;color:#AEB7CC;max-width:44ch}
+.buy{font:700 19px var(--f1);background:var(--gold);color:var(--ink);border:0;border-radius:999px;padding:17px 44px;cursor:pointer;box-shadow:0 12px 30px -8px rgba(185,138,46,.65);transition:transform .2s,box-shadow .2s}
+.buy:hover{transform:translateY(-2px);box-shadow:0 16px 34px -8px rgba(185,138,46,.8)}
+main{margin-top:-44px;padding:0 16px 64px}
+.card{background:#fff;border-radius:22px;box-shadow:var(--sh);padding:24px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 22px;margin-bottom:20px;font-size:14px;color:var(--mute)}
+.legend b{color:var(--ink);font:700 15px var(--f1);margin-right:4px}
+.warn{background:#FFF4E0;border:1px solid #F0D9A8;color:#7A5410;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:14px}
+.sw{display:inline-block;width:13px;height:13px;border-radius:4px;margin-right:7px;vertical-align:-2px}
+.blk{content-visibility:auto;contain-intrinsic-size:auto 220px;margin-bottom:22px}
+.blk h3{font:600 13px var(--f1);color:var(--mute);margin:0 0 8px}
+.cells{display:grid;grid-template-columns:repeat(auto-fill,minmax(50px,1fr));gap:6px}
+.cell{height:42px;display:grid;place-items:center;border-radius:10px;font:600 14px var(--f1);font-variant-numeric:tabular-nums;user-select:none;cursor:default}
+.cell.available,.sw.available{background:var(--okbg);color:var(--ok);box-shadow:inset 0 0 0 1.5px var(--ok)}
+.cell.reserved,.sw.reserved{color:var(--hold);background:repeating-linear-gradient(135deg,#F8F0DE 0 5px,#EEE0BF 5px 10px)}
+.cell.unavailable,.sw.unavailable{background:#E7EAF0;color:#8A93A6;text-decoration:line-through}
+#grid.in{animation:pop .5s cubic-bezier(.2,.8,.2,1)}
+@keyframes pop{from{opacity:.3;transform:scale(.985)}}
+.ov{position:fixed;inset:0;z-index:20;background:rgba(18,24,43,.55);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.ov.on{opacity:1;pointer-events:auto}
+.sheet{background:#fff;width:min(560px,100%);max-height:92dvh;display:flex;flex-direction:column;border-radius:24px 24px 0 0;transform:translateY(28px);transition:transform .38s cubic-bezier(.2,.8,.2,1)}
+.ov.on .sheet{transform:none}
+@media(min-width:640px){.ov{align-items:center}.sheet{border-radius:24px}}
+.sheet header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px 12px}
+.sheet h2{font:800 24px var(--f1);margin:0;letter-spacing:-.01em}
+.x{border:0;background:var(--paper);width:38px;height:38px;border-radius:50%;font-size:22px;cursor:pointer}
+.body{padding:4px 24px 20px;overflow:auto}
+.step{display:none}.step.on{display:block}
+.q{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:14px;background:var(--paper)}
+.pk{display:flex;flex-wrap:wrap;gap:8px;content-visibility:auto;contain-intrinsic-size:auto 120px;margin-bottom:8px}
+.chip{min-width:56px;height:44px;padding:0 10px;border-radius:12px;border:1.5px solid var(--ok);background:var(--okbg);color:var(--ok);font:700 15px var(--f1);cursor:pointer;transition:all .18s}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff;transform:translateY(-1px)}
+.empty{color:var(--mute);text-align:center;padding:24px 0}
+.sheet footer{display:flex;gap:14px;align-items:center;justify-content:space-between;padding:16px 24px;border-top:1px solid var(--line)}
+#cnt{font-weight:600}
+.btn{border:0;border-radius:999px;background:var(--ink);color:#fff;font:700 16px var(--f1);padding:14px 30px;cursor:pointer;transition:background .2s,opacity .2s}
+.btn:hover{background:#26335A}.btn:disabled{opacity:.4;cursor:not-allowed}.btn.full{width:100%}
+.btn.gold{background:var(--gold);color:var(--ink)}
+.qr{display:grid;place-items:center;margin:4px auto 14px;width:min(260px,70vw);aspect-ratio:1;border-radius:20px;border:1.5px solid var(--line);padding:12px;box-shadow:var(--sh)}
+.qr img{width:100%;height:100%;object-fit:contain;border-radius:8px}
+.note{text-align:center;color:var(--mute);font-size:15px;margin:0 0 16px}
+.reveal{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.2,.8,.2,1)}
+.reveal.open{grid-template-rows:1fr}.reveal>div{overflow:hidden}
+form{padding-top:20px}
+.f{margin-bottom:14px}
+.f label,.f .lb{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+.f input[type=text],.f input[type=tel]{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff;transition:border-color .2s}
+.f input:focus{border-color:var(--ink);outline:0}
+.drop{display:flex;align-items:center;gap:12px;border:1.5px dashed #B5BDCF;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;background:var(--paper)}
+.drop:hover,.drop.over{border-color:var(--gold);background:#FBF5E8}
+.drop img{width:48px;height:48px;object-fit:cover;border-radius:8px}
+.drop small{color:var(--mute);display:block}
+.f.bad input,.f.bad .drop{border-color:var(--bad)}
+.e{color:var(--bad);font-size:13px;margin-top:4px;display:none}.f.bad .e{display:block}
+.toast{position:fixed;top:16px;left:50%;z-index:40;transform:translate(-50%,-140%);background:var(--ink);color:#fff;border-radius:16px;padding:14px 22px;box-shadow:0 20px 40px -12px rgba(0,0,0,.4);transition:transform .45s cubic-bezier(.2,.8,.2,1);width:min(440px,calc(100% - 24px));border-left:5px solid var(--gold)}
+.toast.on{transform:translate(-50%,0)}.toast.err{border-color:var(--bad)}
+.toast b{display:block;font-family:var(--f1)}.toast span{color:#C4CBDB;font-size:14px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
 </head>
-
 <body>
 
-  <div class="wrap">
+<div class="hero"><div class="wrap">
+  <div><h1>Reserva tu número</h1><p>Elige uno o varios números disponibles, paga con QR y envía tu comprobante. Te confirmaremos apenas lo revisemos.</p></div>
+  <button class="buy" id="buy">Comprar</button>
+</div></div>
 
-    <!-- =====================================================
-         HEADER
-    ====================================================== -->
+<main class="wrap"><div class="card">
+  <div class="warn" id="warn" hidden></div>
+  <div class="legend" id="legend"></div>
+  <div id="grid" aria-label="Números (solo referencia)"></div>
+</div></main>
 
-    <div class="card">
+<div class="ov" id="ov"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ttl">
+  <header><h2 id="ttl"></h2><button class="x" id="x" aria-label="Cerrar">&times;</button></header>
+  <div class="body">
 
-      <h1>Reserva tu número</h1>
-
-      <p>
-        Selecciona los números que deseas reservar.
-        Después podrás realizar el pago y enviar tu comprobante.
-      </p>
-
-      <div
-        id="status"
-        class="notice hidden"
-      ></div>
-
-      <div
-        id="numbers"
-        class="numbers"
-      >
-        <div class="loading">
-          Cargando números...
-        </div>
-      </div>
-
-      <div class="summary">
-
-        <div>
-          <div class="count">
-            Seleccionados:
-            <span id="count">0</span>
-          </div>
-
-          <div
-            id="selectedList"
-            class="selected-list"
-          >
-            Ninguno
-          </div>
-        </div>
-
-        <button
-          id="continueBtn"
-          disabled
-        >
-          Continuar
-        </button>
-
-      </div>
-
+    <div class="step" id="s1">
+      <input class="q" id="q" type="search" placeholder="Buscar un número" inputmode="numeric" aria-label="Buscar un número">
+      <div id="list"></div>
     </div>
 
+    <div class="step" id="s2">
+      <div class="qr"><img id="qrimg" alt="Código QR de pago" src="./qr.jpg"></div>
+      <p class="note">Se solicitara el comprobante de pago, porfavor guarda una imagen del comprobante.</p>
+      <button class="btn full gold" id="paid" type="button">Pagado</button>
 
-    <!-- =====================================================
-         PAYMENT
-    ====================================================== -->
+      <div class="reveal" id="rev"><div>
+        <form id="form" novalidate>
 
-    <div
-      id="paymentCard"
-      class="card hidden"
-    >
+          <div class="f" data-f="name">
+            <label for="nm">Nombre</label>
+            <input id="nm" type="text" autocomplete="name">
+            <div class="e">Escribe tu nombre.</div>
+          </div>
 
-      <h2>Realiza el pago</h2>
+          <div class="f" data-f="phone">
+            <label for="ph">Teléfono</label>
+            <input id="ph" type="tel" autocomplete="tel" inputmode="tel">
+            <div class="e">Escribe un teléfono válido.</div>
+          </div>
 
-      <p>
-        Escanea el siguiente código QR para realizar el pago.
-      </p>
+          <div class="f" data-f="file">
+            <span class="lb">Comprobante de pago</span>
 
-      <img
-        id="qr"
-        class="qr"
-        src="/qr.jpg"
-        alt="Código QR de pago"
-        onerror="this.onerror=null;this.src='/qr.png';"
-      >
+            <label class="drop" id="drop" for="fl">
+              <span id="dropTxt">
+                <b>Sube la imagen del comprobante</b>
+                <small>Toca aquí o arrástrala</small>
+              </span>
 
-      <div class="notice">
-        <strong>Números seleccionados:</strong>
+              <input id="fl" type="file" accept="image/*" hidden>
+            </label>
 
-        <div
-          id="paymentNumbers"
-          class="selected-list"
-        ></div>
-      </div>
+            <div class="e">Sube la imagen del comprobante.</div>
+          </div>
 
-      <button
-        id="paidBtn"
-        class="primary"
-      >
-        Ya realicé el pago
-      </button>
+          <button class="btn full" id="send" type="submit">Enviar</button>
 
-    </div>
-
-
-    <!-- =====================================================
-         SUCCESS
-    ====================================================== -->
-
-    <div
-      id="successCard"
-      class="card hidden"
-    >
-
-      <div class="notice success">
-
-        <h2>Pago enviado</h2>
-
-        <p>
-          Tu comprobante fue recibido correctamente.
-        </p>
-
-        <p>
-          Tu reserva está pendiente de aprobación.
-        </p>
-
-        <p>
-          <strong>Pedido:</strong>
-          <span id="successOrder"></span>
-        </p>
-
-      </div>
-
+        </form>
+      </div></div>
     </div>
 
   </div>
 
-
-  <!-- =======================================================
-       PAYMENT / CUSTOMER MODAL
-  ======================================================== -->
-
-  <div
-    id="modal"
-    class="modal hidden"
-  >
-
-    <div class="modal-card">
-
-      <h2>Enviar comprobante</h2>
-
-      <p>
-        Completa tus datos y adjunta el comprobante de pago.
-      </p>
-
-
-      <div class="field">
-
-        <label for="name">
-          Nombre
-        </label>
-
-        <input
-          id="name"
-          type="text"
-          autocomplete="name"
-          placeholder="Tu nombre"
-        >
-
-      </div>
-
-
-      <div class="field">
-
-        <label for="phone">
-          Teléfono
-        </label>
-
-        <input
-          id="phone"
-          type="tel"
-          autocomplete="tel"
-          inputmode="tel"
-          placeholder="Tu número de teléfono"
-        >
-
-      </div>
-
-
-      <div class="field">
-
-        <label>
-          Comprobante de pago
-        </label>
-
-        <input
-          id="receipt"
-          type="file"
-          accept="image/*"
-          hidden
-        >
-
-        <div
-          id="receiptBox"
-          class="receipt"
-        >
-
-          <strong>
-            Seleccionar comprobante
-          </strong>
-
-          <div class="small">
-            JPG, JPEG, PNG o WEBP
-          </div>
-
-          <div
-            id="receiptName"
-            class="receipt-name"
-          ></div>
-
-          <img
-            id="receiptPreview"
-            alt="Vista previa del comprobante"
-          >
-
-        </div>
-
-      </div>
-
-
-      <div
-        id="formError"
-        class="notice error hidden"
-      ></div>
-
-
-      <div class="modal-actions">
-
-        <button
-          id="cancelBtn"
-          class="secondary"
-          type="button"
-        >
-          Cancelar
-        </button>
-
-        <button
-          id="submitBtn"
-          type="button"
-        >
-          Enviar
-        </button>
-
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <!-- =======================================================
-       TOAST
-  ======================================================== -->
-
-  <div
-    id="toast"
-    class="toast hidden"
-  ></div>
-
-
-  <script>
-
-    /* =======================================================
-       CONFIG
-    ======================================================== */
-
-    const API = '/api';
-
-
-    /* =======================================================
-       ELEMENTS
-    ======================================================== */
-
-    const $ = id =>
-      document.getElementById(id);
-
-    const numbersEl =
-      $('numbers');
-
-    const countEl =
-      $('count');
-
-    const selectedListEl =
-      $('selectedList');
-
-    const continueBtn =
-      $('continueBtn');
-
-    const paymentCard =
-      $('paymentCard');
-
-    const paymentNumbers =
-      $('paymentNumbers');
-
-    const paidBtn =
-      $('paidBtn');
-
-    const modal =
-      $('modal');
-
-    const nameEl =
-      $('name');
-
-    const phoneEl =
-      $('phone');
-
-    const receiptEl =
-      $('receipt');
-
-    const receiptBox =
-      $('receiptBox');
-
-    const receiptName =
-      $('receiptName');
-
-    const receiptPreview =
-      $('receiptPreview');
-
-    const cancelBtn =
-      $('cancelBtn');
-
-    const submitBtn =
-      $('submitBtn');
-
-    const formError =
-      $('formError');
-
-    const statusEl =
-      $('status');
-
-    const successCard =
-      $('successCard');
-
-    const successOrder =
-      $('successOrder');
-
-    const toast =
-      $('toast');
-
-
-    /* =======================================================
-       STATE
-    ======================================================== */
-
-    let numbers = [];
-
-    const selected =
-      new Set();
-
-    let currentOrder = null;
-
-    let sending = false;
-
-
-    /* =======================================================
-       UTILS
-    ======================================================== */
-
-    function showToast(message) {
-
-      toast.textContent =
-        message;
-
-      toast.classList.remove(
-        'hidden'
+  <footer id="foot">
+    <span id="cnt"></span>
+    <button class="btn" id="go" disabled>Continuar</button>
+  </footer>
+
+</div></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <b></b>
+  <span></span>
+</div>
+
+
+<script>
+
+/* ---------- CONFIG ----------
+ MODE 'static' : lee ./numbers.json; los cambios se guardan en localStorage (modo prueba).
+ MODE 'kvdb'   : guarda todo el arreglo en KVdb.io (GET/PUT).
+ MODE 'server' : usa server.js.
+
+ El correo YA NO pasa por Formspree.
+ server.js recibe el comprobante y lo envía mediante Resend.
+*/
+
+const CONFIG={
+  MODE:'server',
+  KVDB_URL:'https://kvdb.io/X9xZvhLutQBALSAaNbJ5nv/numbers',
+  API:'/api/numbers',
+  NOTIFY_EMAIL:'angierodca@gmail.com',
+  APPROVE_BASE:''
+};
+
+const LBL={
+  available:'Disponible',
+  reserved:'En proceso',
+  unavailable:'Pagado'
+};
+
+const $=s=>document.querySelector(s);
+
+const uid=()=>
+  crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2)+Date.now().toString(36);
+
+const free=n=>
+  n &&
+  (
+    n.status==='available' ||
+    (
+      n.status==='reserved' &&
+      n.at &&
+      !n.name &&
+      Date.now()-n.at>9e5
+    )
+  );
+
+let DB=[],
+    sel=new Set(),
+    order=null,
+    sent=false,
+    file=null,
+    busy=false,
+    offline=false;
+
+
+/* ---------- Lógica de datos ---------- */
+
+function apply(L,a,p){
+
+  const mine=n=>
+    n.orderId===p.orderId;
+
+  if(a==='reserve'){
+
+    const m=
+      new Map(
+        L.map(
+          n=>[String(n.num),n]
+        )
       );
 
-      clearTimeout(
-        showToast.timer
-      );
-
-      showToast.timer =
-        setTimeout(() => {
-          toast.classList.add(
-            'hidden'
-          );
-        }, 3500);
+    if(
+      p.nums.some(
+        x=>!free(m.get(x))
+      )
+    ){
+      throw new Error('conflict');
     }
 
+    p.nums.forEach(
+      x=>
+        Object.assign(
+          m.get(x),
+          {
+            status:'reserved',
+            name:'',
+            phone:'',
+            confirm:false,
+            orderId:p.orderId,
+            at:p.at
+          }
+        )
+    );
+  }
 
-    function showStatus(
-      message,
-      type = ''
-    ) {
-
-      statusEl.textContent =
-        message;
-
-      statusEl.className =
-        'notice';
-
-      if (type) {
-        statusEl.classList.add(type);
-      }
-
-      statusEl.classList.remove(
-        'hidden'
-      );
-    }
-
-
-    function hideStatus() {
-
-      statusEl.classList.add(
-        'hidden'
-      );
-    }
-
-
-    function showFormError(message) {
-
-      formError.textContent =
-        message;
-
-      formError.classList.remove(
-        'hidden'
-      );
-    }
-
-
-    function hideFormError() {
-
-      formError.textContent =
-        '';
-
-      formError.classList.add(
-        'hidden'
-      );
-    }
-
-
-    function generateOrderId() {
-
-      const timestamp =
-        Date.now()
-          .toString(36)
-          .toUpperCase();
-
-      const random =
-        Math.random()
-          .toString(36)
-          .substring(2, 8)
-          .toUpperCase();
-
-      return `${timestamp}-${random}`;
-    }
-
-
-    /* =======================================================
-       LOAD NUMBERS
-    ======================================================== */
-
-    async function loadNumbers() {
-
-      try {
-
-        hideStatus();
-
-        const response =
-          await fetch(
-            `${API}/numbers`,
+  if(a==='release')
+    L
+      .filter(
+        n=>mine(n)&&!n.name
+      )
+      .forEach(
+        n=>
+          Object.assign(
+            n,
             {
-              cache: 'no-store'
+              status:'available',
+              orderId:'',
+              at:0
+            }
+          )
+      );
+
+  if(a==='submit')
+    L
+      .filter(mine)
+      .forEach(
+        n=>
+          Object.assign(
+            n,
+            {
+              status:'reserved',
+              name:p.name,
+              phone:p.phone,
+              confirm:false
+            }
+          )
+      );
+
+  if(a==='approve')
+    L
+      .filter(mine)
+      .forEach(
+        n=>
+          Object.assign(
+            n,
+            {
+              status:'unavailable',
+              confirm:true
+            }
+          )
+      );
+
+  return L;
+}
+
+
+const seed=async()=>{
+
+  try{
+
+    const r=
+      await fetch(
+        './numbers.json',
+        {
+          cache:'no-store'
+        }
+      );
+
+    if(r.ok)
+      return await r.json();
+
+  }catch(e){}
+
+  return Array.from(
+    {
+      length:100
+    },
+    (_,i)=>({
+      num:String(i).padStart(2,'0'),
+      status:'available',
+      name:'',
+      phone:'',
+      confirm:false
+    })
+  );
+};
+
+
+const Store={
+
+  async read(){
+
+    if(CONFIG.MODE==='server'){
+
+      try{
+
+        const r=
+          await fetch(
+            CONFIG.API,
+            {
+              cache:'no-store'
             }
           );
 
+        if(!r.ok)
+          throw 0;
 
-        if (!response.ok) {
+        offline=false;
 
-          throw new Error(
-            `HTTP ${response.status}`
-          );
-        }
+        return await r.json();
 
+      }catch(e){
 
-        const data =
-          await response.json();
+        offline=true;
 
-
-        if (!Array.isArray(data)) {
-
-          throw new Error(
-            'Respuesta inválida del servidor.'
-          );
-        }
-
-
-        numbers =
-          data;
-
-
-        renderNumbers();
-
-      } catch (error) {
-
-        console.error(
-          'ERROR CARGANDO NÚMEROS:',
-          error
-        );
-
-        numbersEl.innerHTML = '';
-
-        showStatus(
-          'No se pudieron cargar los números. Recarga la página.',
-          'error'
-        );
+        return seed();
       }
     }
 
+    if(CONFIG.MODE==='kvdb'){
 
-    /* =======================================================
-       RENDER NUMBERS
-    ======================================================== */
-
-    function renderNumbers() {
-
-      numbersEl.innerHTML = '';
-
-
-      if (!numbers.length) {
-
-        numbersEl.innerHTML = `
-          <div class="loading">
-            No hay números disponibles.
-          </div>
-        `;
-
-        return;
-      }
-
-
-      for (const item of numbers) {
-
-        const button =
-          document.createElement('button');
-
-
-        button.type =
-          'button';
-
-        button.className =
-          'number';
-
-
-        const value =
-          String(item.num);
-
-
-        button.textContent =
-          value;
-
-
-        const unavailable =
-          item.status === 'unavailable';
-
-        const reserved =
-          item.status === 'reserved';
-
-
-        if (unavailable) {
-
-          button.classList.add(
-            'unavailable'
-          );
-
-          button.disabled =
-            true;
-        }
-
-        else if (reserved) {
-
-          button.classList.add(
-            'reserved'
-          );
-
-          button.disabled =
-            true;
-        }
-
-
-        if (selected.has(value)) {
-
-          button.classList.add(
-            'selected'
-          );
-        }
-
-
-        if (!button.disabled) {
-
-          button.addEventListener(
-            'click',
-            () => toggleNumber(value)
-          );
-        }
-
-
-        numbersEl.appendChild(
-          button
-        );
-      }
-
-
-      updateSelectionUI();
-    }
-
-
-    /* =======================================================
-       SELECT / DESELECT
-    ======================================================== */
-
-    function toggleNumber(value) {
-
-      if (selected.has(value)) {
-
-        selected.delete(value);
-
-      } else {
-
-        selected.add(value);
-      }
-
-
-      renderNumbers();
-    }
-
-
-    function updateSelectionUI() {
-
-      const list =
-        Array.from(selected)
-          .sort(
-            (a, b) =>
-              Number(a) - Number(b)
-          );
-
-
-      countEl.textContent =
-        list.length;
-
-
-      selectedListEl.textContent =
-        list.length
-          ? list.join(', ')
-          : 'Ninguno';
-
-
-      continueBtn.disabled =
-        list.length === 0;
-    }
-
-
-    /* =======================================================
-       RESERVE
-    ======================================================== */
-
-    async function reserveNumbers() {
-
-      const nums =
-        Array.from(selected);
-
-
-      if (!nums.length) {
-
-        showToast(
-          'Selecciona al menos un número.'
+      const r=
+        await fetch(
+          CONFIG.KVDB_URL,
+          {
+            cache:'no-store'
+          }
         );
 
-        return;
-      }
+      if(r.ok)
+        return r.json();
+
+      const s=
+        await seed();
+
+      await this.write(s);
+
+      return s;
+    }
+
+    const o=
+      localStorage.getItem(
+        'numbers_demo'
+      );
+
+    return o
+      ? JSON.parse(o)
+      : seed();
+  },
 
 
-      const orderId =
-        generateOrderId();
+  async write(L){
+
+    if(CONFIG.MODE==='kvdb'){
+
+      const r=
+        await fetch(
+          CONFIG.KVDB_URL,
+          {
+            method:'PUT',
+            body:JSON.stringify(L)
+          }
+        );
+
+      if(!r.ok)
+        throw new Error('write');
+
+    }else{
+
+      localStorage.setItem(
+        'numbers_demo',
+        JSON.stringify(L)
+      );
+    }
+  },
 
 
-      continueBtn.disabled =
-        true;
+  async mutate(a,p){
 
-      continueBtn.textContent =
-        'Reservando...';
+    if(CONFIG.MODE==='server'){
 
-
-      try {
-
-        const response =
-          await fetch(
-            `${API}/numbers`,
-            {
-              method: 'POST',
-
-              headers: {
-                'Content-Type':
-                  'application/json'
-              },
-
-              body: JSON.stringify({
-                action: 'reserve',
-                orderId,
-                nums
+      const r=
+        await fetch(
+          CONFIG.API,
+          {
+            method:'POST',
+            headers:{
+              'Content-Type':
+                'application/json'
+            },
+            body:
+              JSON.stringify({
+                action:a,
+                ...p
               })
-            }
-          );
-
-
-        const data =
-          await response.json()
-            .catch(() => null);
-
-
-        if (!response.ok) {
-
-          throw new Error(
-            data &&
-            data.error
-              ? data.error
-              : `HTTP ${response.status}`
-          );
-        }
-
-
-        currentOrder =
-          orderId;
-
-
-        paymentNumbers.textContent =
-          nums.join(', ');
-
-
-        paymentCard.classList.remove(
-          'hidden'
+          }
         );
 
+      if(r.status===409)
+        throw new Error('conflict');
 
-        paymentCard.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
+      if(!r.ok)
+        throw new Error('api');
+
+      return r.json();
+    }
+
+    const L=
+      await this.read();
+
+    apply(
+      L,
+      a,
+      p
+    );
+
+    await this.write(L);
+
+    return L;
+  }
+};
 
 
-        showToast(
-          'Números reservados temporalmente.'
+/* ---------- UI ---------- */
+
+function toast(t,s,kind){
+
+  const e=$('#toast');
+
+  e.className=
+    'toast'+
+    (
+      kind==='err'
+        ? ' err'
+        : ''
+    );
+
+  e.querySelector('b').textContent=t;
+
+  e.querySelector('span').textContent=
+    s||'';
+
+  requestAnimationFrame(
+    ()=>e.classList.add('on')
+  );
+
+  clearTimeout(toast.t);
+
+  toast.t=
+    setTimeout(
+      ()=>e.classList.remove('on'),
+      5000
+    );
+}
+
+
+function renderGrid(){
+
+  const c={
+    available:0,
+    reserved:0,
+    unavailable:0
+  };
+
+  let h='';
+
+  for(
+    let i=0;
+    i<DB.length;
+    i+=100
+  ){
+
+    const part=
+      DB.slice(
+        i,
+        i+100
+      );
+
+    h+=
+      `<section class="blk">
+        <h3>
+          ${part[0].num}
+          a
+          ${part[part.length-1].num}
+        </h3>
+        <div class="cells">`;
+
+    for(const n of part){
+
+      const s=
+        free(n)
+          ? 'available'
+          : n.status;
+
+      c[s]++;
+
+      h+=
+        `<span class="cell ${s}" title="${LBL[s]}">${n.num}</span>`;
+    }
+
+    h+=
+      '</div></section>';
+  }
+
+  const g=$('#grid');
+
+  g.innerHTML=h;
+
+  g.classList.remove('in');
+
+  void g.offsetWidth;
+
+  g.classList.add('in');
+
+
+  $('#legend').innerHTML=
+    Object.keys(LBL)
+      .map(
+        k=>
+          `<span>
+            <i class="sw ${k}"></i>
+            <b>${c[k]}</b>
+            ${LBL[k].toLowerCase()}${k==='available'?'s':k==='reserved'?'':'s'}
+          </span>`
+      )
+      .join('');
+
+
+  $('#buy').disabled=
+    !c.available;
+
+
+  const w=$('#warn');
+
+  w.hidden=
+    !offline;
+
+  w.textContent=
+    'No hay conexión con el servidor. Estás viendo los números de referencia. Enciende server.js y abre esta página desde su dirección (por ejemplo http://localhost:3000) para poder comprar.';
+}
+
+
+function buildPicker(){
+
+  const L=
+    DB.filter(free);
+
+  let h='';
+
+  for(
+    let i=0;
+    i<L.length;
+    i+=100
+  ){
+
+    h+=
+      '<div class="pk">'+
+      L
+        .slice(i,i+100)
+        .map(
+          n=>
+            `<button
+              type="button"
+              class="chip${sel.has(String(n.num))?' on':''}"
+              data-n="${n.num}"
+              aria-pressed="${sel.has(String(n.num))}"
+            >
+              ${n.num}
+            </button>`
+        )
+        .join('')+
+      '</div>';
+  }
+
+  $('#list').innerHTML=
+    L.length
+      ? h
+      : '<p class="empty">Ya no quedan números disponibles.</p>';
+
+  upd();
+}
+
+
+function upd(){
+
+  const k=
+    sel.size;
+
+  $('#cnt').textContent=
+    k
+      ? `${k} ${k>1?'números elegidos':'número elegido'}`
+      : 'Elige uno o más números';
+
+  $('#go').disabled=
+    !k||busy;
+}
+
+
+function step(n){
+
+  document
+    .querySelectorAll('.step')
+    .forEach(
+      (s,i)=>
+        s.classList.toggle(
+          'on',
+          i===n-1
+        )
+    );
+
+  $('#ttl').textContent=
+    n===1
+      ? 'Elige tus números'
+      : 'Paga con QR';
+
+  $('#foot').hidden=
+    n!==1;
+}
+
+
+async function open(){
+
+  try{
+
+    DB=
+      await Store.read();
+
+  }catch(e){
+
+    return toast(
+      'No pudimos cargar los números',
+      'Revisa tu conexión e inténtalo de nuevo.',
+      'err'
+    );
+  }
+
+  if(offline){
+
+    renderGrid();
+
+    return toast(
+      'Servidor no disponible',
+      'Enciende server.js y abre la página desde su dirección.',
+      'err'
+    );
+  }
+
+  sel.clear();
+
+  $('#q').value='';
+
+  buildPicker();
+
+  step(1);
+
+  $('#ov').classList.add('on');
+}
+
+
+async function close(release=true){
+
+  $('#ov').classList.remove('on');
+
+  if(
+    order &&
+    release &&
+    !sent
+  ){
+
+    try{
+
+      DB=
+        await Store.mutate(
+          'release',
+          {
+            orderId:order
+          }
         );
 
+      renderGrid();
 
-        await loadNumbers();
+    }catch(e){}
+  }
 
-      } catch (error) {
+  order=null;
 
-        console.error(
-          'ERROR RESERVANDO:',
-          error
+  sent=false;
+
+  file=null;
+
+  sel.clear();
+
+  setTimeout(
+    ()=>{
+      $('#rev').classList.remove('open');
+      $('#form').reset();
+      resetDrop();
+
+      document
+        .querySelectorAll('.f')
+        .forEach(
+          f=>
+            f.classList.remove('bad')
         );
 
+      $('#paid').hidden=false;
+    },
+    350
+  );
+}
 
-        showStatus(
-          error.message ||
-          'No se pudieron reservar los números.',
-          'error'
+
+function resetDrop(){
+
+  $('#dropTxt').innerHTML=
+    '<b>Sube la imagen del comprobante</b><small>Toca aquí o arrástrala</small>';
+
+  $('#drop img')?.remove();
+}
+
+
+/* ---------- Eventos ---------- */
+
+$('#buy').onclick=
+  open;
+
+$('#x').onclick=
+  ()=>close(true);
+
+$('#ov').addEventListener(
+  'mousedown',
+  e=>{
+    if(e.target.id==='ov')
+      close(true);
+  }
+);
+
+document.addEventListener(
+  'keydown',
+  e=>{
+    if(
+      e.key==='Escape' &&
+      $('#ov').classList.contains('on')
+    ){
+      close(true);
+    }
+  }
+);
+
+
+$('#list').onclick=
+  e=>{
+
+    const b=
+      e.target.closest('.chip');
+
+    if(!b)
+      return;
+
+    const n=
+      b.dataset.n;
+
+    sel.has(n)
+      ? sel.delete(n)
+      : sel.add(n);
+
+    b.classList.toggle(
+      'on'
+    );
+
+    b.setAttribute(
+      'aria-pressed',
+      sel.has(n)
+    );
+
+    upd();
+  };
+
+
+$('#q').oninput=
+  e=>{
+
+    const v=
+      e.target.value.trim();
+
+    document
+      .querySelectorAll('.chip')
+      .forEach(
+        c=>
+          c.hidden=
+            !!v &&
+            !c.dataset.n.startsWith(v)
+      );
+  };
+
+
+/* ---------- Reservar ---------- */
+
+$('#go').onclick=
+  async()=>{
+
+    busy=true;
+
+    $('#go').textContent=
+      'Reservando…';
+
+    upd();
+
+    try{
+
+      order=
+        uid();
+
+      DB=
+        await Store.mutate(
+          'reserve',
+          {
+            nums:[...sel],
+            orderId:order,
+            at:Date.now()
+          }
         );
 
-      } finally {
+      renderGrid();
 
-        continueBtn.disabled =
-          selected.size === 0;
+      step(2);
 
-        continueBtn.textContent =
-          'Continuar';
+    }catch(e){
+
+      order=null;
+
+      if(
+        e.message==='conflict'
+      ){
+
+        toast(
+          'Alguien reservó uno de tus números',
+          'Actualizamos la lista, elige de nuevo.',
+          'err'
+        );
+
+        try{
+          DB=
+            await Store.read();
+        }catch(_){}
+
+        sel.clear();
+
+        buildPicker();
+
+        renderGrid();
+
+      }else{
+
+        toast(
+          'No pudimos reservar',
+          'Inténtalo de nuevo en unos segundos.',
+          'err'
+        );
       }
     }
 
+    busy=false;
 
-    /* =======================================================
-       OPEN CUSTOMER FORM
-    ======================================================== */
+    $('#go').textContent=
+      'Continuar';
 
-    function openModal() {
-
-      if (!currentOrder) {
-
-        showToast(
-          'Primero debes reservar los números.'
-        );
-
-        return;
-      }
+    upd();
+  };
 
 
-      hideFormError();
+/* ---------- QR ---------- */
 
+$('#qrimg').onerror=
+  function(){
 
-      nameEl.value =
-        '';
+    if(!this.dataset.t){
 
-      phoneEl.value =
-        '';
+      this.dataset.t=1;
 
+      this.src='./qr.png';
 
-      receiptEl.value =
-        '';
+    }else{
 
-      receiptName.textContent =
-        '';
-
-      receiptPreview.src =
-        '';
-
-      receiptBox.classList.remove(
-        'has-file'
-      );
-
-
-      modal.classList.remove(
-        'hidden'
-      );
-
-
-      setTimeout(() => {
-        nameEl.focus();
-      }, 50);
-    }
-
-
-    /* =======================================================
-       CLOSE MODAL
-    ======================================================== */
-
-    function closeModal() {
-
-      if (sending) {
-        return;
-      }
-
-      modal.classList.add(
-        'hidden'
+      this.replaceWith(
+        Object.assign(
+          document.createElement('p'),
+          {
+            className:'note',
+            textContent:
+              'Falta el archivo qr.png o qr.jpg en esta carpeta.'
+          }
+        )
       );
     }
+  };
 
 
-    /* =======================================================
-       RECEIPT
-    ======================================================== */
+/* ---------- Mostrar formulario ---------- */
 
-    receiptBox.addEventListener(
-      'click',
-      () => {
+$('#paid').onclick=
+  ()=>{
+    $('#rev').classList.add('open');
 
-        if (!sending) {
-          receiptEl.click();
-        }
-      }
+    $('#paid').hidden=true;
+
+    setTimeout(
+      ()=>$('#nm').focus(),
+      450
+    );
+  };
+
+
+/* ---------- Comprobante ---------- */
+
+function setFile(f){
+
+  if(
+    !f ||
+    !f.type.startsWith('image/')
+  ){
+    return;
+  }
+
+  file=f;
+
+  $('#drop img')?.remove();
+
+  const im=
+    new Image();
+
+  im.src=
+    URL.createObjectURL(f);
+
+  $('#drop').prepend(im);
+
+  $('#dropTxt').innerHTML=
+    `<b>${f.name.replace(/</g,'')}</b><small>Toca para cambiarla</small>`;
+
+  $('[data-f=file]')
+    .classList
+    .remove('bad');
+}
+
+
+$('#fl').onchange=
+  e=>
+    setFile(
+      e.target.files[0]
     );
 
 
-    receiptEl.addEventListener(
-      'change',
-      () => {
+['dragover','dragenter']
+  .forEach(
+    t=>
+      $('#drop').addEventListener(
+        t,
+        e=>{
+          e.preventDefault();
+          $('#drop').classList.add('over');
+        }
+      )
+  );
 
-        const file =
-          receiptEl.files &&
-          receiptEl.files[0];
+
+['dragleave','drop']
+  .forEach(
+    t=>
+      $('#drop').addEventListener(
+        t,
+        e=>{
+          e.preventDefault();
+          $('#drop').classList.remove('over');
+        }
+      )
+  );
 
 
-        if (!file) {
+$('#drop').addEventListener(
+  'drop',
+  e=>
+    setFile(
+      e.dataTransfer.files[0]
+    )
+);
 
-          receiptName.textContent =
-            '';
 
-          receiptBox.classList.remove(
-            'has-file'
+/* ---------- Enviar pago ---------- */
+
+/*
+  IMPORTANTE:
+
+  Ya NO usamos Formspree.
+
+  El navegador manda el formulario directamente
+  a nuestro propio server.js:
+
+      index.html
+          ↓
+      POST /api/pay
+          ↓
+      server.js
+          ↓
+      Resend
+          ↓
+      angierodca@gmail.com
+
+  El comprobante se envía como archivo real mediante
+  multipart/form-data.
+*/
+
+$('#form').onsubmit=
+  async e=>{
+
+    e.preventDefault();
+
+    if(busy)
+      return;
+
+
+    const name=
+      $('#nm')
+        .value
+        .trim();
+
+    const phone=
+      $('#ph')
+        .value
+        .trim();
+
+
+    const ok={
+      name:
+        name.length>1,
+
+      phone:
+        phone.replace(/\D/g,'').length>=7,
+
+      file:
+        !!file
+    };
+
+
+    for(
+      const k in ok
+    ){
+
+      document
+        .querySelector(
+          `[data-f=${k}]`
+        )
+        .classList
+        .toggle(
+          'bad',
+          !ok[k]
+        );
+    }
+
+
+    if(
+      !ok.name ||
+      !ok.phone ||
+      !ok.file
+    ){
+      return;
+    }
+
+
+    if(!order){
+
+      toast(
+        'Reserva no encontrada',
+        'Vuelve a seleccionar tus números.',
+        'err'
+      );
+
+      return;
+    }
+
+
+    /*
+      Evitar comprobantes gigantes.
+    */
+    if(
+      file.size >
+      10*1024*1024
+    ){
+
+      toast(
+        'Comprobante demasiado grande',
+        'La imagen debe pesar menos de 10 MB.',
+        'err'
+      );
+
+      return;
+    }
+
+
+    busy=true;
+
+
+    const b=
+      $('#send');
+
+    b.disabled=true;
+
+    b.textContent=
+      'Enviando…';
+
+
+    try{
+
+      /*
+        ======================================================
+        FORM DATA
+
+        NO establecer manualmente Content-Type.
+
+        El navegador genera automáticamente:
+
+        multipart/form-data; boundary=...
+        ======================================================
+      */
+
+      const fd=
+        new FormData();
+
+
+      fd.append(
+        'orderId',
+        order
+      );
+
+
+      fd.append(
+        'name',
+        name
+      );
+
+
+      fd.append(
+        'phone',
+        phone
+      );
+
+
+      fd.append(
+        'Comprobante',
+        file,
+        file.name
+      );
+
+
+      /*
+        Enviamos TODO a nuestro propio backend.
+
+        El backend se encarga de:
+
+        1. Validar la reserva.
+        2. Guardar nombre y teléfono.
+        3. Obtener los números.
+        4. Enviar el correo mediante Resend.
+        5. Adjuntar el comprobante.
+        6. Crear el enlace de aprobación.
+      */
+
+      const r=
+        await fetch(
+          '/api/pay',
+          {
+            method:'POST',
+            body:fd
+          }
+        );
+
+
+      const j=
+        await r
+          .json()
+          .catch(
+            ()=>({})
           );
 
-          return;
-        }
 
+      /*
+        Si server.js devuelve error,
+        mostramos el mensaje real.
+      */
 
-        if (!file.type.startsWith('image/')) {
+      if(!r.ok){
 
-          receiptEl.value =
-            '';
-
-          showFormError(
-            'El comprobante debe ser una imagen.'
-          );
-
-          return;
-        }
-
-
-        receiptName.textContent =
-          file.name;
-
-
-        const reader =
-          new FileReader();
-
-
-        reader.onload =
-          event => {
-
-            receiptPreview.src =
-              event.target.result;
-
-            receiptBox.classList.add(
-              'has-file'
-            );
-          };
-
-
-        reader.readAsDataURL(file);
-
-      }
-    );
-
-
-    /* =======================================================
-       SUBMIT PAYMENT
-    ======================================================== */
-
-    async function submitPayment() {
-
-      if (sending) {
-        return;
-      }
-
-
-      hideFormError();
-
-
-      const name =
-        nameEl.value.trim();
-
-      const phone =
-        phoneEl.value.trim();
-
-      const file =
-        receiptEl.files &&
-        receiptEl.files[0];
-
-
-      if (!currentOrder) {
-
-        showFormError(
-          'La reserva no existe. Vuelve a seleccionar los números.'
+        throw new Error(
+          j.error ||
+          'No pudimos enviar tu comprobante.'
         );
-
-        return;
-      }
-
-
-      if (!name) {
-
-        showFormError(
-          'Escribe tu nombre.'
-        );
-
-        nameEl.focus();
-
-        return;
-      }
-
-
-      if (!phone) {
-
-        showFormError(
-          'Escribe tu número de teléfono.'
-        );
-
-        phoneEl.focus();
-
-        return;
-      }
-
-
-      if (!file) {
-
-        showFormError(
-          'Selecciona el comprobante de pago.'
-        );
-
-        return;
-      }
-
-
-      if (!file.type.startsWith('image/')) {
-
-        showFormError(
-          'El comprobante debe ser una imagen.'
-        );
-
-        return;
       }
 
 
       /*
-        Límite del frontend.
-        El backend también lo valida.
+        El servidor debe devolver:
+        { ok:true, ... }
       */
-      if (
-        file.size >
-        10 * 1024 * 1024
-      ) {
 
-        showFormError(
-          'El comprobante no puede superar 10 MB.'
+      if(
+        !j ||
+        j.ok!==true
+      ){
+
+        throw new Error(
+          'El servidor no confirmó el envío.'
         );
-
-        return;
       }
 
 
-      sending =
-        true;
+      /*
+        El correo ya fue enviado por Resend.
+      */
 
+      DB=
+        j;
 
-      submitBtn.disabled =
-        true;
 
-      cancelBtn.disabled =
-        true;
+      sent=true;
 
-      submitBtn.textContent =
-        'Enviando...';
 
-
-      try {
-
-        /*
-          =====================================================
-          MULTIPART FORM DATA
-
-          Esto manda:
-
-          orderId
-          name
-          phone
-          Comprobante
-
-          directamente a nuestro server.js.
-        =====================================================
-        */
-
-        const formData =
-          new FormData();
-
-
-        formData.append(
-          'orderId',
-          currentOrder
-        );
-
-
-        formData.append(
-          'name',
-          name
-        );
-
-
-        formData.append(
-          'phone',
-          phone
-        );
-
-
-        formData.append(
-          'Comprobante',
-          file,
-          file.name
-        );
-
-
-        /*
-          IMPORTANTE:
-
-          NO ponemos Content-Type manualmente.
-
-          El navegador crea automáticamente:
-          multipart/form-data; boundary=...
-        */
-        const response =
-          await fetch(
-            `${API}/pay`,
-            {
-              method: 'POST',
-              body: formData
-            }
-          );
-
-
-        const data =
-          await response.json()
-            .catch(() => null);
-
-
-        if (!response.ok) {
-
-          const serverError =
-            data &&
-            data.error
-              ? data.error
-              : `HTTP ${response.status}`;
-
-
-          if (
-            data &&
-            data.stage === 'email'
-          ) {
-
-            throw new Error(
-              `La reserva se guardó, pero Resend rechazó el correo: ${serverError}`
-            );
-          }
-
-
-          throw new Error(
-            serverError
-          );
-        }
-
-
-        if (
-          !data ||
-          data.ok !== true
-        ) {
-
-          throw new Error(
-            'El servidor no confirmó el envío.'
-          );
-        }
-
-
-        /*
-          ÉXITO
-        */
-
-        successOrder.textContent =
-          currentOrder;
-
-
-        modal.classList.add(
-          'hidden'
-        );
-
-
-        paymentCard.classList.add(
-          'hidden'
-        );
-
-
-        successCard.classList.remove(
-          'hidden'
-        );
-
-
-        successCard.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
-
-
-        showToast(
-          'Comprobante enviado correctamente.'
-        );
-
-
-        /*
-          Limpiar estado local.
-        */
-
-        selected.clear();
-
-        currentOrder =
-          null;
-
-
-        await loadNumbers();
-
-
-      } catch (error) {
-
-        console.error(
-          'ERROR COMPLETO:',
-          error
-        );
-
-
-        showFormError(
-          error.message ||
-          'No se pudo enviar la reserva.'
-        );
-
-      } finally {
-
-        sending =
-          false;
-
-
-        submitBtn.disabled =
-          false;
-
-        cancelBtn.disabled =
-          false;
-
-        submitBtn.textContent =
-          'Enviar';
-      }
-    }
-
-
-    /* =======================================================
-       EVENTS
-    ======================================================== */
-
-    continueBtn.addEventListener(
-      'click',
-      reserveNumbers
-    );
-
-
-    paidBtn.addEventListener(
-      'click',
-      openModal
-    );
-
-
-    cancelBtn.addEventListener(
-      'click',
-      closeModal
-    );
-
-
-    submitBtn.addEventListener(
-      'click',
-      submitPayment
-    );
-
-
-    modal.addEventListener(
-      'click',
-      event => {
-
-        if (
-          event.target === modal &&
-          !sending
-        ) {
-          closeModal();
-        }
-      }
-    );
-
-
-    /*
-      ESC para cerrar modal.
-    */
-    document.addEventListener(
-      'keydown',
-      event => {
-
-        if (
-          event.key === 'Escape' &&
-          !sending &&
-          !modal.classList.contains('hidden')
-        ) {
-          closeModal();
-        }
-      }
-    );
-
-
-    /* =======================================================
-       APPROVAL REDIRECT COMPATIBILITY
-    ======================================================== */
-
-    async function checkApproval() {
-
-      const params =
-        new URLSearchParams(
-          window.location.search
-        );
-
-
-      const order =
-        params.get('aprobar');
-
-
-      if (!order) {
-        return;
-      }
-
-
-      showStatus(
-        'Procesando aprobación...'
+      toast(
+        'Estamos procesando tu pago',
+        'Te avisaremos cuando confirmemos tu comprobante.'
       );
 
 
-      try {
-
-        const response =
-          await fetch(
-            `${API}/approve?order=${encodeURIComponent(order)}`
-          );
+      await close(false);
 
 
-        if (!response.ok) {
-
-          const text =
-            await response.text();
-
-          throw new Error(
-            text ||
-            `HTTP ${response.status}`
-          );
-        }
+      renderGrid();
 
 
-        history.replaceState(
-          {},
-          document.title,
-          window.location.pathname
-        );
+    }catch(err){
+
+      console.error(
+        'ERROR COMPLETO:',
+        err
+      );
 
 
-        showStatus(
-          `La reserva ${order} fue aprobada correctamente.`,
-          'success'
-        );
+      toast(
+        'No pudimos enviar tu comprobante',
+        err.message ||
+        'Revisa tu conexión e inténtalo de nuevo.',
+        'err'
+      );
 
-
-        await loadNumbers();
-
-
-      } catch (error) {
-
-        console.error(
-          'ERROR APROBANDO:',
-          error
-        );
-
-
-        showStatus(
-          'No se pudo aprobar la reserva.',
-          'error'
-        );
-      }
     }
 
 
-    /* =======================================================
-       START
-    ======================================================== */
+    busy=false;
 
-    (async function init() {
+    b.disabled=false;
 
-      await checkApproval();
+    b.textContent=
+      'Enviar';
+  };
 
-      await loadNumbers();
 
-    })();
+/* ---------- Inicio + aprobación desde el enlace del correo ---------- */
 
-  </script>
+(async()=>{
 
+  const ap=
+    new URLSearchParams(
+      location.search
+    ).get('aprobar');
+
+
+  try{
+
+    if(ap){
+
+      /*
+        El enlace del correo llega como:
+
+        https://tu-render.onrender.com/?aprobar=ID
+
+        El frontend llama al endpoint de aprobación
+        del server.js.
+      */
+
+      const r=
+        await fetch(
+          `/api/approve?order=${encodeURIComponent(ap)}`
+        );
+
+
+      if(!r.ok){
+
+        throw new Error(
+          'No se pudo aprobar la compra.'
+        );
+      }
+
+
+      history.replaceState(
+        null,
+        '',
+        location.pathname
+      );
+
+
+      toast(
+        'Compra aprobada',
+        'Los números quedaron como pagados.'
+      );
+
+
+      DB=
+        await Store.read();
+
+    }else{
+
+      DB=
+        await Store.read();
+    }
+
+  }catch(e){
+
+    $('#grid').innerHTML=
+      '<p class="empty">No pudimos cargar los números. Recarga la página.</p>';
+
+    return;
+  }
+
+
+  renderGrid();
+
+})();
+
+</script>
 </body>
 </html>
