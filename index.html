@@ -126,7 +126,7 @@ const CONFIG={
   MODE:'server',   // 'server' = usa server.js (recomendado) | 'static' = solo prueba | 'kvdb'
   KVDB_URL:'https://kvdb.io/X9xZvhLutQBALSAaNbJ5nv/numbers',
   API:'/api/numbers',
-  FORMSPREE:'https://formspree.io/f/YOUR_ID',   // el destinatario angierodca@gmail.com se configura en Formspree
+  FORMSPREE:'https://formspree.io/f/xwlpbwjw',   // el destinatario angierodca@gmail.com se configura en Formspree
   NOTIFY_EMAIL:'angierodca@gmail.com',
   APPROVE_BASE:''                                // vacío = esta misma página
 };
@@ -266,7 +266,8 @@ $('#form').onsubmit=async e=>{
       const r=await fetch('/api/pay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:order,name,phone,receipt:data})});
       const j=await r.json().catch(()=>({}));if(!r.ok)throw ue(j.error||'No pudimos enviar tu comprobante.');
       DB=j;
-    }else{
+    }
+
     if(!CONFIG.FORMSPREE.includes('YOUR_ID')){
       const fd=new FormData();
       fd.append('_subject','Nuevo pago: números '+nums.join(', '));
@@ -276,7 +277,10 @@ $('#form').onsubmit=async e=>{
       const r=await fetch(CONFIG.FORMSPREE,{method:'POST',body:fd,headers:{Accept:'application/json'}});
       if(!r.ok)throw new Error('mail');
     }else console.warn('Formspree sin configurar: no se envió el correo a '+CONFIG.NOTIFY_EMAIL);
-    DB=await Store.mutate('submit',{orderId:order,name,phone});}
+
+    if(CONFIG.MODE!=='server'){
+      DB=await Store.mutate('submit',{orderId:order,name,phone});
+    }
     sent=true;toast('Estamos procesando tu pago','Te avisaremos cuando confirmemos tu comprobante.');
     await close(false);renderGrid();
   }catch(err){toast('No pudimos enviar tu comprobante',err.user?err.message:'Revisa tu conexión e inténtalo de nuevo.','err')}
