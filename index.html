@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-
 <style>
 :root{--ink:#12182B;--paper:#F3F5F9;--line:#DDE2EC;--mute:#6B7488;--ok:#0E8F6B;--okbg:#E6F5EF;--hold:#9A6A14;--gold:#B98A2E;--bad:#C0392B;--sh:0 1px 2px rgba(18,24,43,.06),0 16px 36px -14px rgba(18,24,43,.2);--f1:'Bricolage Grotesque',system-ui,sans-serif;--f2:'Instrument Sans',system-ui,sans-serif}
 *{box-sizing:border-box}[hidden]{display:none!important}
@@ -130,6 +129,7 @@ form{padding-top:20px}
 
         <div class="reveal" id="rev">
           <div>
+
             <form id="form" novalidate>
 
               <div class="f" data-f="name">
@@ -153,7 +153,13 @@ form{padding-top:20px}
                     <small>Toca aquí o arrástrala</small>
                   </span>
 
-                  <input id="fl" type="file" accept="image/*" hidden>
+                  <input
+                    id="fl"
+                    name="Comprobante"
+                    type="file"
+                    accept="image/*"
+                    hidden
+                  >
                 </label>
 
                 <div class="e">Sube la imagen del comprobante.</div>
@@ -164,10 +170,12 @@ form{padding-top:20px}
               </button>
 
             </form>
+
           </div>
         </div>
 
       </div>
+
     </div>
 
     <footer id="foot">
@@ -183,28 +191,37 @@ form{padding-top:20px}
   <span></span>
 </div>
 
+<!--
+  IFRAME OCULTO PARA EL POST NORMAL A FORMSPREE.
+  No usamos fetch() hacia Formspree, evitando el problema CORS.
+-->
+<iframe
+  name="formspree_target"
+  id="formspree_target"
+  hidden>
+</iframe>
+
 <script>
 
-/* ============================================================
-   CONFIGURACIÓN
-   ============================================================ */
+/* ---------- CONFIG ---------- */
 
 const CONFIG = {
   MODE: 'server',
-
   KVDB_URL: 'https://kvdb.io/X9xZvhLutQBALSAaNbJ5nv/numbers',
-
   API: '/api/numbers',
 
+  /*
+    Este endpoint se usa mediante POST HTML tradicional.
+    NO se usa fetch(), porque eso provocaba el error CORS.
+  */
   FORMSPREE: 'https://formspree.io/f/xwlpbwjw',
 
-  NOTIFY_EMAIL: 'angierodca@gmail.com'
+  NOTIFY_EMAIL: 'angierodca@gmail.com',
+  APPROVE_BASE: ''
 };
 
 
-/* ============================================================
-   VARIABLES
-   ============================================================ */
+/* ---------- VARIABLES ---------- */
 
 const LBL = {
   available: 'Disponible',
@@ -241,9 +258,7 @@ let busy = false;
 let offline = false;
 
 
-/* ============================================================
-   LÓGICA LOCAL
-   ============================================================ */
+/* ---------- LÓGICA DE DATOS ---------- */
 
 function apply(L, a, p) {
 
@@ -255,7 +270,11 @@ function apply(L, a, p) {
       L.map(n => [String(n.num), n])
     );
 
-    if (p.nums.some(x => !free(m.get(x)))) {
+    if (
+      p.nums.some(
+        x => !free(m.get(x))
+      )
+    ) {
       throw new Error('conflict');
     }
 
@@ -326,9 +345,7 @@ function apply(L, a, p) {
 }
 
 
-/* ============================================================
-   DATOS DE RESPALDO
-   ============================================================ */
+/* ---------- DATOS INICIALES ---------- */
 
 const seed = async () => {
 
@@ -336,7 +353,9 @@ const seed = async () => {
 
     const r = await fetch(
       './numbers.json',
-      { cache: 'no-store' }
+      {
+        cache: 'no-store'
+      }
     );
 
     if (r.ok) {
@@ -358,9 +377,7 @@ const seed = async () => {
 };
 
 
-/* ============================================================
-   STORE
-   ============================================================ */
+/* ---------- STORE ---------- */
 
 const Store = {
 
@@ -372,7 +389,9 @@ const Store = {
 
         const r = await fetch(
           CONFIG.API,
-          { cache: 'no-store' }
+          {
+            cache: 'no-store'
+          }
         );
 
         if (!r.ok) {
@@ -391,11 +410,14 @@ const Store = {
       }
     }
 
+
     if (CONFIG.MODE === 'kvdb') {
 
       const r = await fetch(
         CONFIG.KVDB_URL,
-        { cache: 'no-store' }
+        {
+          cache: 'no-store'
+        }
       );
 
       if (r.ok) {
@@ -409,9 +431,11 @@ const Store = {
       return s;
     }
 
-    const o = localStorage.getItem(
-      'numbers_demo'
-    );
+
+    const o =
+      localStorage.getItem(
+        'numbers_demo'
+      );
 
     return o
       ? JSON.parse(o)
@@ -474,6 +498,7 @@ const Store = {
       return r.json();
     }
 
+
     const L = await this.read();
 
     apply(L, a, p);
@@ -482,12 +507,11 @@ const Store = {
 
     return L;
   }
+
 };
 
 
-/* ============================================================
-   TOAST
-   ============================================================ */
+/* ---------- TOAST ---------- */
 
 function toast(t, s, kind) {
 
@@ -509,15 +533,14 @@ function toast(t, s, kind) {
   clearTimeout(toast.t);
 
   toast.t = setTimeout(
-    () => e.classList.remove('on'),
-    6000
+    () =>
+      e.classList.remove('on'),
+    5000
   );
 }
 
 
-/* ============================================================
-   GRID
-   ============================================================ */
+/* ---------- GRID ---------- */
 
 function renderGrid() {
 
@@ -529,13 +552,22 @@ function renderGrid() {
 
   let h = '';
 
-  for (let i = 0; i < DB.length; i += 100) {
+  for (
+    let i = 0;
+    i < DB.length;
+    i += 100
+  ) {
 
-    const part = DB.slice(i, i + 100);
+    const part =
+      DB.slice(i, i + 100);
 
     h +=
       `<section class="blk">
-        <h3>${part[0].num} a ${part[part.length - 1].num}</h3>
+        <h3>
+          ${part[0].num}
+          a
+          ${part[part.length - 1].num}
+        </h3>
         <div class="cells">`;
 
     for (const n of part) {
@@ -551,11 +583,13 @@ function renderGrid() {
         `<span
           class="cell ${s}"
           title="${LBL[s]}"
-        >${n.num}</span>`;
+        >
+          ${n.num}
+        </span>`;
     }
 
     h +=
-        `</div>
+      `</div>
       </section>`;
   }
 
@@ -569,6 +603,7 @@ function renderGrid() {
 
   g.classList.add('in');
 
+
   $('#legend').innerHTML =
     Object.keys(LBL)
       .map(k =>
@@ -576,30 +611,25 @@ function renderGrid() {
           <i class="sw ${k}"></i>
           <b>${c[k]}</b>
           ${LBL[k].toLowerCase()}
-          ${k === 'available'
-            ? 's'
-            : k === 'reserved'
-              ? ''
-              : 's'}
         </span>`
       )
       .join('');
 
+
   $('#buy').disabled =
     !c.available;
+
 
   const w = $('#warn');
 
   w.hidden = !offline;
 
   w.textContent =
-    'No hay conexión con el servidor. Estás viendo los números de referencia. Enciende server.js y abre esta página desde su dirección para poder comprar.';
+    'No hay conexión con el servidor. Estás viendo los números de referencia. Recarga la página cuando el servidor esté disponible.';
 }
 
 
-/* ============================================================
-   SELECTOR DE NÚMEROS
-   ============================================================ */
+/* ---------- PICKER ---------- */
 
 function buildPicker() {
 
@@ -607,7 +637,11 @@ function buildPicker() {
 
   let h = '';
 
-  for (let i = 0; i < L.length; i += 100) {
+  for (
+    let i = 0;
+    i < L.length;
+    i += 100
+  ) {
 
     h +=
       '<div class="pk">' +
@@ -636,10 +670,6 @@ function buildPicker() {
 }
 
 
-/* ============================================================
-   ACTUALIZAR CONTADOR
-   ============================================================ */
-
 function upd() {
 
   const k = sel.size;
@@ -654,19 +684,16 @@ function upd() {
 }
 
 
-/* ============================================================
-   STEPS
-   ============================================================ */
-
 function step(n) {
 
   document
     .querySelectorAll('.step')
-    .forEach((s, i) =>
-      s.classList.toggle(
-        'on',
-        i === n - 1
-      )
+    .forEach(
+      (s, i) =>
+        s.classList.toggle(
+          'on',
+          i === n - 1
+        )
     );
 
   $('#ttl').textContent =
@@ -679,9 +706,7 @@ function step(n) {
 }
 
 
-/* ============================================================
-   ABRIR MODAL
-   ============================================================ */
+/* ---------- OPEN ---------- */
 
 async function open() {
 
@@ -698,16 +723,18 @@ async function open() {
     );
   }
 
+
   if (offline) {
 
     renderGrid();
 
     return toast(
       'Servidor no disponible',
-      'Enciende server.js y abre la página desde su dirección.',
+      'Recarga la página cuando el servidor esté disponible.',
       'err'
     );
   }
+
 
   sel.clear();
 
@@ -721,9 +748,7 @@ async function open() {
 }
 
 
-/* ============================================================
-   CERRAR MODAL
-   ============================================================ */
+/* ---------- CLOSE ---------- */
 
 async function close(release = true) {
 
@@ -737,15 +762,19 @@ async function close(release = true) {
 
     try {
 
-      DB = await Store.mutate(
-        'release',
-        { orderId: order }
-      );
+      DB =
+        await Store.mutate(
+          'release',
+          {
+            orderId: order
+          }
+        );
 
       renderGrid();
 
     } catch (e) {}
   }
+
 
   order = null;
 
@@ -755,9 +784,12 @@ async function close(release = true) {
 
   sel.clear();
 
+
   setTimeout(() => {
 
-    $('#rev').classList.remove('open');
+    $('#rev')
+      .classList
+      .remove('open');
 
     $('#form').reset();
 
@@ -765,8 +797,9 @@ async function close(release = true) {
 
     document
       .querySelectorAll('.f')
-      .forEach(f =>
-        f.classList.remove('bad')
+      .forEach(
+        f =>
+          f.classList.remove('bad')
       );
 
     $('#paid').hidden = false;
@@ -775,24 +808,27 @@ async function close(release = true) {
 }
 
 
-/* ============================================================
-   EVENTOS
-   ============================================================ */
+/* ---------- EVENTOS ---------- */
 
 $('#buy').onclick = open;
 
-$('#x').onclick = () =>
-  close(true);
+$('#x').onclick =
+  () => close(true);
+
 
 $('#ov').addEventListener(
   'mousedown',
   e => {
 
-    if (e.target.id === 'ov') {
+    if (
+      e.target.id === 'ov'
+    ) {
       close(true);
     }
+
   }
 );
+
 
 document.addEventListener(
   'keydown',
@@ -800,30 +836,35 @@ document.addEventListener(
 
     if (
       e.key === 'Escape' &&
-      $('#ov').classList.contains('on')
+      $('#ov')
+        .classList
+        .contains('on')
     ) {
       close(true);
     }
+
   }
 );
 
 
-/* ============================================================
-   SELECCIÓN
-   ============================================================ */
+/* ---------- SELECCIÓN ---------- */
 
 $('#list').onclick = e => {
 
   const b =
     e.target.closest('.chip');
 
-  if (!b) return;
+  if (!b) {
+    return;
+  }
 
   const n = b.dataset.n;
 
-  sel.has(n)
-    ? sel.delete(n)
-    : sel.add(n);
+  if (sel.has(n)) {
+    sel.delete(n);
+  } else {
+    sel.add(n);
+  }
 
   b.classList.toggle(
     'on'
@@ -838,10 +879,6 @@ $('#list').onclick = e => {
 };
 
 
-/* ============================================================
-   BUSCADOR
-   ============================================================ */
-
 $('#q').oninput = e => {
 
   const v =
@@ -849,17 +886,16 @@ $('#q').oninput = e => {
 
   document
     .querySelectorAll('.chip')
-    .forEach(c =>
-      c.hidden =
-        !!v &&
-        !c.dataset.n.startsWith(v)
+    .forEach(
+      c =>
+        c.hidden =
+          !!v &&
+          !c.dataset.n.startsWith(v)
     );
 };
 
 
-/* ============================================================
-   RESERVAR
-   ============================================================ */
+/* ---------- RESERVAR ---------- */
 
 $('#go').onclick = async () => {
 
@@ -870,18 +906,20 @@ $('#go').onclick = async () => {
 
   upd();
 
+
   try {
 
     order = uid();
 
-    DB = await Store.mutate(
-      'reserve',
-      {
-        nums: [...sel],
-        orderId: order,
-        at: Date.now()
-      }
-    );
+    DB =
+      await Store.mutate(
+        'reserve',
+        {
+          nums: [...sel],
+          orderId: order,
+          at: Date.now()
+        }
+      );
 
     renderGrid();
 
@@ -891,7 +929,9 @@ $('#go').onclick = async () => {
 
     order = null;
 
-    if (e.message === 'conflict') {
+    if (
+      e.message === 'conflict'
+    ) {
 
       toast(
         'Alguien reservó uno de tus números',
@@ -919,6 +959,7 @@ $('#go').onclick = async () => {
     }
   }
 
+
   busy = false;
 
   $('#go').textContent =
@@ -928,41 +969,40 @@ $('#go').onclick = async () => {
 };
 
 
-/* ============================================================
-   QR
-   ============================================================ */
+/* ---------- QR ---------- */
 
-$('#qrimg').onerror = function () {
+$('#qrimg').onerror =
+  function () {
 
-  if (!this.dataset.t) {
+    if (!this.dataset.t) {
 
-    this.dataset.t = 1;
+      this.dataset.t = 1;
 
-    this.src = './qr.png';
+      this.src = './qr.png';
 
-  } else {
+    } else {
 
-    this.replaceWith(
-      Object.assign(
-        document.createElement('p'),
-        {
-          className: 'note',
-          textContent:
-            'Falta el archivo qr.jpg o qr.png en esta carpeta.'
-        }
-      )
-    );
-  }
-};
+      this.replaceWith(
+        Object.assign(
+          document.createElement('p'),
+          {
+            className: 'note',
+            textContent:
+              'Falta el archivo qr.png o qr.jpg en esta carpeta.'
+          }
+        )
+      );
+    }
+  };
 
 
-/* ============================================================
-   BOTÓN PAGADO
-   ============================================================ */
+/* ---------- PAGADO ---------- */
 
 $('#paid').onclick = () => {
 
-  $('#rev').classList.add('open');
+  $('#rev')
+    .classList
+    .add('open');
 
   $('#paid').hidden = true;
 
@@ -973,22 +1013,14 @@ $('#paid').onclick = () => {
 };
 
 
-/* ============================================================
-   ARCHIVO
-   ============================================================ */
+/* ---------- ARCHIVO ---------- */
 
 function setFile(f) {
 
-  if (!f) return;
-
-  if (!f.type.startsWith('image/')) {
-
-    toast(
-      'Archivo no válido',
-      'El comprobante debe ser una imagen.',
-      'err'
-    );
-
+  if (
+    !f ||
+    !f.type.startsWith('image/')
+  ) {
     return;
   }
 
@@ -1008,37 +1040,55 @@ function setFile(f) {
      <small>Toca para cambiarla</small>`;
 
   $('[data-f=file]')
-    .classList.remove('bad');
+    .classList
+    .remove('bad');
 }
 
-$('#fl').onchange = e =>
-  setFile(e.target.files[0]);
+
+$('#fl').onchange =
+  e =>
+    setFile(
+      e.target.files[0]
+    );
+
 
 ['dragover', 'dragenter']
-  .forEach(t =>
-    $('#drop').addEventListener(
-      t,
-      e => {
+  .forEach(
+    t =>
+      $('#drop')
+        .addEventListener(
+          t,
+          e => {
 
-        e.preventDefault();
+            e.preventDefault();
 
-        $('#drop').classList.add('over');
-      }
-    )
+            $('#drop')
+              .classList
+              .add('over');
+
+          }
+        )
   );
+
 
 ['dragleave', 'drop']
-  .forEach(t =>
-    $('#drop').addEventListener(
-      t,
-      e => {
+  .forEach(
+    t =>
+      $('#drop')
+        .addEventListener(
+          t,
+          e => {
 
-        e.preventDefault();
+            e.preventDefault();
 
-        $('#drop').classList.remove('over');
-      }
-    )
+            $('#drop')
+              .classList
+              .remove('over');
+
+          }
+        )
   );
+
 
 $('#drop').addEventListener(
   'drop',
@@ -1049,489 +1099,491 @@ $('#drop').addEventListener(
 );
 
 
-/* ============================================================
-   COMPRIMIR IMAGEN
-   ============================================================ */
+/* ---------- RESET ARCHIVO ---------- */
 
-const compressImage = f =>
-  new Promise((resolve, reject) => {
+function resetDrop() {
 
-    const im = new Image();
+  $('#dropTxt').innerHTML =
+    '<b>Sube la imagen del comprobante</b>' +
+    '<small>Toca aquí o arrástrala</small>';
 
-    im.onload = () => {
+  $('#drop img')?.remove();
+}
 
-      const max = 1600;
 
-      const k =
-        Math.min(
-          1,
-          max /
-          Math.max(
-            im.width,
-            im.height
-          )
-        );
+/* ---------- ERROR DE USUARIO ---------- */
 
-      const c =
-        document.createElement('canvas');
-
-      c.width =
-        Math.max(
-          1,
-          Math.round(im.width * k)
-        );
-
-      c.height =
-        Math.max(
-          1,
-          Math.round(im.height * k)
-        );
-
-      const ctx =
-        c.getContext('2d');
-
-      ctx.drawImage(
-        im,
-        0,
-        0,
-        c.width,
-        c.height
-      );
-
-      c.toBlob(
-        blob => {
-
-          if (!blob) {
-            reject(
-              new Error(
-                'No pudimos procesar la imagen.'
-              )
-            );
-            return;
-          }
-
-          resolve(blob);
-
-        },
-        'image/jpeg',
-        0.82
-      );
-    };
-
-    im.onerror = () =>
-      reject(
-        new Error(
-          'No pudimos leer la imagen.'
-        )
-      );
-
-    im.src =
-      URL.createObjectURL(f);
-  });
-
-
-/* ============================================================
-   ERROR CONTROLADO
-   ============================================================ */
-
-const userError = m =>
-  Object.assign(
-    new Error(m),
-    { user: true }
-  );
-
-
-/* ============================================================
-   ENVÍO
-   ============================================================ */
-
-$('#form').onsubmit = async e => {
-
-  e.preventDefault();
-
-  if (busy) return;
-
-  const name =
-    $('#nm').value.trim();
-
-  const phone =
-    $('#ph').value.trim();
-
-  const ok = {
-    name: name.length > 1,
-    phone:
-      phone.replace(/\D/g, '').length >= 7,
-    file: !!file
-  };
-
-  for (const k in ok) {
-
-    document
-      .querySelector(`[data-f="${k}"]`)
-      .classList.toggle(
-        'bad',
-        !ok[k]
-      );
-  }
-
-  if (
-    !ok.name ||
-    !ok.phone ||
-    !ok.file
-  ) {
-    return;
-  }
-
-  busy = true;
-
-  const b = $('#send');
-
-  b.disabled = true;
-
-  b.textContent =
-    'Enviando…';
-
-  const nums =
-    [...sel].sort(
-      (a, c) => a - c
-    );
-
-  /*
-     Este es el enlace que recibirá
-     el administrador para aprobar.
-  */
-
-  const approvalLink =
-    `${location.origin}/api/approve?order=${encodeURIComponent(order)}`;
-
-  try {
-
-    /*
-     ----------------------------------------------------------
-     1. Convertimos el comprobante a JPEG comprimido.
-     ----------------------------------------------------------
-    */
-
-    const compressed =
-      await compressImage(file);
-
-    if (!compressed) {
-      throw userError(
-        'No pudimos procesar el comprobante.'
-      );
-    }
-
-
-    /*
-     ----------------------------------------------------------
-     2. Guardamos la compra en server.js.
-     ----------------------------------------------------------
-    */
-
-    if (CONFIG.MODE === 'server') {
-
-      const base64 =
-        await new Promise(
-          (resolve, reject) => {
-
-            const reader =
-              new FileReader();
-
-            reader.onload = () => {
-
-              const result =
-                String(reader.result);
-
-              resolve(
-                result.split(',')[1]
-              );
-            };
-
-            reader.onerror = () =>
-              reject(
-                new Error(
-                  'No pudimos preparar el comprobante.'
-                )
-              );
-
-            reader.readAsDataURL(
-              compressed
-            );
-          }
-        );
-
-      const r =
-        await fetch(
-          '/api/pay',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type':
-                'application/json'
-            },
-            body: JSON.stringify({
-              orderId: order,
-              name,
-              phone,
-              receipt: base64
-            })
-          }
-        );
-
-      const j =
-        await r.json()
-          .catch(() => ({}));
-
-      if (!r.ok) {
-
-        throw userError(
-          j.error ||
-          'El servidor no pudo registrar el pago.'
-        );
-      }
-
-      DB = j;
-    }
-
-
-    /*
-     ----------------------------------------------------------
-     3. ENVIAMOS A FORMSPREE.
-     
-     IMPORTANTE:
-     En lugar del archivo original, enviamos el JPEG
-     comprimido y le damos el nombre "comprobante.jpg".
-     ----------------------------------------------------------
-    */
-
-    if (
-      CONFIG.FORMSPREE &&
-      !CONFIG.FORMSPREE.includes('YOUR_ID')
-    ) {
-
-      const fd =
-        new FormData();
-
-      fd.append(
-        '_subject',
-        'Nuevo pago: números ' +
-        nums.join(', ')
-      );
-
-      fd.append(
-        'Nombre',
-        name
-      );
-
-      fd.append(
-        'Teléfono',
-        phone
-      );
-
-      fd.append(
-        'Números pagados',
-        nums.join(', ')
-      );
-
-      fd.append(
-        'Pedido',
-        order
-      );
-
-      fd.append(
-        'Aprobar',
-        approvalLink
-      );
-
-      fd.append(
-        'message',
-        `Nuevo pago pendiente.
-
-Números: ${nums.join(', ')}
-
-Nombre: ${name}
-
-Teléfono: ${phone}
-
-Pedido: ${order}
-
-APROBAR:
-${approvalLink}`
-      );
-
-      /*
-         Formspree recibe aquí un JPEG real,
-         no base64 y no el archivo original.
-      */
-
-      fd.append(
-        'Comprobante',
-        compressed,
-        'comprobante.jpg'
-      );
-
-
-    const testResponse = await fetch(
-      'https://formspree.io/f/xwlpbwjw',
+const ue =
+  m =>
+    Object.assign(
+      new Error(m),
       {
-        method: 'POST',
-        body: fd
+        user: 1
       }
     );
-    
-    const testText = await testResponse.text();
-    
-    console.log('FORMspree HTTP:', testResponse.status);
-    console.log('FORMspree RESPUESTA:', testText);
-    
-    if (!testResponse.ok) {
-      throw new Error(
-        `Formspree respondió ${testResponse.status}: ${testText}`
-      );
-    }
 
 
-      /*
-         ------------------------------------------------------
-         Si Formspree devuelve error, mostramos el error real.
-         ------------------------------------------------------
-      */
+/* =========================================================
+   ENVÍO DEL PEDIDO
+   ========================================================= */
 
-      if (!r.ok) {
+$('#form').onsubmit =
+  async e => {
 
-        let details = '';
+    e.preventDefault();
 
-        try {
-
-          const data =
-            await r.json();
-
-          if (data.errors) {
-
-            details =
-              data.errors
-                .map(
-                  x =>
-                    x.message ||
-                    x.code ||
-                    ''
-                )
-                .filter(Boolean)
-                .join(' ');
-
-          } else if (data.error) {
-
-            details =
-              data.error;
-          }
-
-        } catch (_) {}
-
-        throw userError(
-          details ||
-          `Formspree rechazó el envío (${r.status}).`
-        );
-      }
-    }
-
-
-    /*
-     ----------------------------------------------------------
-     4. MODO NO-SERVER
-     ----------------------------------------------------------
-    */
-
-    if (CONFIG.MODE !== 'server') {
-
-      DB =
-        await Store.mutate(
-          'submit',
-          {
-            orderId: order,
-            name,
-            phone
-          }
-        );
-    }
-
-
-    /*
-     ----------------------------------------------------------
-     5. ÉXITO
-     ----------------------------------------------------------
-    */
-
-    sent = true;
-
-    toast(
-      'Estamos procesando tu pago',
-      'Te avisaremos cuando confirmemos tu comprobante.'
-    );
-
-    await close(false);
-
-    renderGrid();
-
-  } catch (err) {
-    console.error('ERROR COMPLETO:', err);
-    
-    alert(
-      'ERROR REAL:\n\n' +
-      'Nombre: ' + (err.name || 'desconocido') + '\n' +
-      'Mensaje: ' + (err.message || String(err)) + '\n\n' +
-      'Stack:\n' + (err.stack || 'No disponible')
-    );
-  
-    toast(
-      'Error',
-      err.message || String(err),
-      'err'
-    );
-  }
-
-  busy = false;
-
-  b.disabled = false;
-
-  b.textContent =
-    'Enviar';
-};
-
-
-/* ============================================================
-   APROBACIÓN
-   ============================================================
-
-   Si alguien abre el antiguo enlace:
-
-   ?aprobar=ID
-
-   lo redirigimos al endpoint correcto del servidor.
-   ============================================================ */
-
-(async () => {
-
-  const params =
-    new URLSearchParams(
-      location.search
-    );
-
-  const oldApproval =
-    params.get('aprobar');
-
-  try {
-
-    if (oldApproval) {
-
-      location.replace(
-        `/api/approve?order=${encodeURIComponent(oldApproval)}`
-      );
-
+    if (busy) {
       return;
     }
 
-    DB =
-      await Store.read();
+
+    const name =
+      $('#nm')
+        .value
+        .trim();
+
+    const phone =
+      $('#ph')
+        .value
+        .trim();
+
+
+    const ok = {
+      name:
+        name.length > 1,
+
+      phone:
+        phone
+          .replace(/\D/g, '')
+          .length >= 7,
+
+      file:
+        !!file
+    };
+
+
+    for (const k in ok) {
+
+      document
+        .querySelector(
+          `[data-f=${k}]`
+        )
+        .classList
+        .toggle(
+          'bad',
+          !ok[k]
+        );
+    }
+
+
+    if (
+      !ok.name ||
+      !ok.phone ||
+      !ok.file
+    ) {
+      return;
+    }
+
+
+    busy = true;
+
+    const b = $('#send');
+
+    b.disabled = true;
+
+    b.textContent =
+      'Enviando…';
+
+
+    const nums =
+      [...sel].sort(
+        (a, c) => a - c
+      );
+
+
+    const base =
+      CONFIG.APPROVE_BASE ||
+      location.origin +
+      location.pathname;
+
+
+    const link =
+      `${base}?aprobar=${encodeURIComponent(order)}`;
+
+
+    try {
+
+      /*
+        ======================================================
+        PASO 1
+        Guardamos el pedido en Render.
+        Aquí SÍ usamos fetch porque es nuestro propio servidor.
+        ======================================================
+      */
+
+      if (
+        CONFIG.MODE === 'server'
+      ) {
+
+        const r =
+          await fetch(
+            '/api/pay',
+            {
+              method: 'POST',
+
+              headers: {
+                'Content-Type':
+                  'application/json'
+              },
+
+              body:
+                JSON.stringify({
+                  orderId: order,
+                  name: name,
+                  phone: phone
+                })
+            }
+          );
+
+
+        const j =
+          await r
+            .json()
+            .catch(
+              () => ({})
+            );
+
+
+        if (!r.ok) {
+
+          throw ue(
+            j.error ||
+            `El servidor rechazó el pedido (HTTP ${r.status}).`
+          );
+        }
+
+
+        DB = j;
+      }
+
+
+      /*
+        ======================================================
+        PASO 2
+        FORMspree.
+
+        NO usamos fetch().
+
+        Creamos un formulario HTML real con:
+        method="POST"
+        enctype="multipart/form-data"
+
+        Esto evita el problema CORS que teníamos con fetch().
+        ======================================================
+      */
+
+      if (
+        CONFIG.FORMSPREE &&
+        !CONFIG.FORMSPREE.includes(
+          'YOUR_ID'
+        )
+      ) {
+
+        const fs =
+          document.createElement(
+            'form'
+          );
+
+
+        fs.method =
+          'POST';
+
+        fs.action =
+          CONFIG.FORMSPREE;
+
+        fs.enctype =
+          'multipart/form-data';
+
+        fs.encoding =
+          'multipart/form-data';
+
+        fs.target =
+          'formspree_target';
+
+        fs.style.display =
+          'none';
+
+
+        /*
+          Campos que recibirá Formspree.
+        */
+
+        const fields = {
+
+          _subject:
+            'Nuevo pago: números ' +
+            nums.join(', '),
+
+          Nombre:
+            name,
+
+          'Teléfono':
+            phone,
+
+          'Números pagados':
+            nums.join(', '),
+
+          Pedido:
+            order,
+
+          Aprobar:
+            link,
+
+          message:
+            `Nuevo pago pendiente.
+
+Nombre: ${name}
+Teléfono: ${phone}
+Números: ${nums.join(', ')}
+Pedido: ${order}
+
+Aprobar esta compra:
+${link}`
+        };
+
+
+        for (
+          const [key, value]
+          of Object.entries(fields)
+        ) {
+
+          const input =
+            document.createElement(
+              'input'
+            );
+
+          input.type =
+            'hidden';
+
+          input.name =
+            key;
+
+          input.value =
+            value;
+
+          fs.appendChild(input);
+        }
+
+
+        /*
+          IMPORTANTE:
+          usamos el mismo input de archivo
+          que ya tiene seleccionado el comprobante.
+
+          No hacemos base64.
+          No hacemos fetch.
+          El navegador manda el archivo
+          directamente como multipart/form-data.
+        */
+
+        const originalParent =
+          $('#fl').parentNode;
+
+        const originalNext =
+          $('#fl').nextSibling;
+
+
+        $('#fl').name =
+          'Comprobante';
+
+
+        fs.appendChild(
+          $('#fl')
+        );
+
+
+        document.body.appendChild(
+          fs
+        );
+
+
+        /*
+          POST HTML tradicional a Formspree.
+        */
+
+        HTMLFormElement.prototype.submit.call(
+          fs
+        );
+
+
+        /*
+          Restauramos el input visualmente
+          después de iniciar el envío.
+        */
+
+        if (
+          originalNext
+        ) {
+
+          originalParent.insertBefore(
+            $('#fl'),
+            originalNext
+          );
+
+        } else {
+
+          originalParent.appendChild(
+            $('#fl')
+          );
+        }
+
+
+        /*
+          Ya no necesitamos el formulario oculto.
+        */
+
+        setTimeout(
+          () => fs.remove(),
+          1000
+        );
+
+
+      } else {
+
+        console.warn(
+          'Formspree no está configurado.'
+        );
+      }
+
+
+      /*
+        En modo no-server mantenemos
+        el comportamiento anterior.
+      */
+
+      if (
+        CONFIG.MODE !== 'server'
+      ) {
+
+        DB =
+          await Store.mutate(
+            'submit',
+            {
+              orderId: order,
+              name: name,
+              phone: phone
+            }
+          );
+      }
+
+
+      /*
+        El POST a Formspree ya fue iniciado.
+        Marcamos el pedido como enviado.
+      */
+
+      sent = true;
+
+
+      toast(
+        'Pago enviado',
+        'Recibimos tu comprobante. Te avisaremos cuando confirmemos el pago.'
+      );
+
+
+      await close(false);
+
+      renderGrid();
+
+
+    } catch (err) {
+
+      console.error(
+        'ERROR COMPLETO:',
+        err
+      );
+
+
+      toast(
+        'No pudimos enviar tu comprobante',
+        err.user
+          ? err.message
+          : (
+              err.message ||
+              String(err)
+            ),
+        'err'
+      );
+    }
+
+
+    busy = false;
+
+    b.disabled = false;
+
+    b.textContent =
+      'Enviar';
+  };
+
+
+/* =========================================================
+   INICIO + APROBACIÓN
+   ========================================================= */
+
+(async () => {
+
+  const ap =
+    new URLSearchParams(
+      location.search
+    ).get('aprobar');
+
+
+  try {
+
+    if (ap) {
+
+      /*
+        El enlace del correo abre:
+        ?aprobar=ID
+
+        Lo convertimos directamente
+        mediante el endpoint del servidor.
+      */
+
+      const r =
+        await fetch(
+          `/api/approve?order=${encodeURIComponent(ap)}`
+        );
+
+
+      if (!r.ok) {
+        throw new Error(
+          'No se pudo aprobar la compra.'
+        );
+      }
+
+
+      history.replaceState(
+        null,
+        '',
+        location.pathname
+      );
+
+
+      toast(
+        'Compra aprobada',
+        'Los números quedaron como pagados.'
+      );
+
+
+      DB =
+        await Store.read();
+
+    } else {
+
+      DB =
+        await Store.read();
+    }
 
   } catch (e) {
 
@@ -1540,6 +1592,7 @@ ${approvalLink}`
 
     return;
   }
+
 
   renderGrid();
 
