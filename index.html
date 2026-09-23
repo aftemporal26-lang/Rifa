@@ -4,77 +4,536 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Reserva tu número</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
 <style>
-:root{--ink:#12182B;--paper:#F3F5F9;--line:#DDE2EC;--mute:#6B7488;--ok:#0E8F6B;--okbg:#E6F5EF;--hold:#9A6A14;--gold:#B98A2E;--bad:#C0392B;--sh:0 1px 2px rgba(18,24,43,.06),0 16px 36px -14px rgba(18,24,43,.2);--f1:'Bricolage Grotesque',system-ui,sans-serif;--f2:'Instrument Sans',system-ui,sans-serif}
-*{box-sizing:border-box}[hidden]{display:none!important}
-body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 var(--f2)}
-button,input{font:inherit;color:inherit}
-:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-.wrap{max-width:1040px;margin:0 auto}
-.hero{background:var(--ink);color:#fff;padding:44px 20px 80px}
-.hero .wrap{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-end;justify-content:space-between}
-h1{font:800 clamp(34px,6vw,54px)/1.02 var(--f1);letter-spacing:-.02em;margin:0 0 12px}
-.hero p{margin:0;color:#AEB7CC;max-width:44ch}
-.buy{font:700 19px var(--f1);background:var(--gold);color:var(--ink);border:0;border-radius:999px;padding:17px 44px;cursor:pointer;box-shadow:0 12px 30px -8px rgba(185,138,46,.65);transition:transform .2s,box-shadow .2s}
-.buy:hover{transform:translateY(-2px);box-shadow:0 16px 34px -8px rgba(185,138,46,.8)}
-main{margin-top:-44px;padding:0 16px 64px}
-.card{background:#fff;border-radius:22px;box-shadow:var(--sh);padding:24px}
-.legend{display:flex;flex-wrap:wrap;gap:8px 22px;margin-bottom:20px;font-size:14px;color:var(--mute)}
-.legend b{color:var(--ink);font:700 15px var(--f1);margin-right:4px}
-.warn{background:#FFF4E0;border:1px solid #F0D9A8;color:#7A5410;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:14px}
-.sw{display:inline-block;width:13px;height:13px;border-radius:4px;margin-right:7px;vertical-align:-2px}
-.blk{content-visibility:auto;contain-intrinsic-size:auto 220px;margin-bottom:22px}
-.blk h3{font:600 13px var(--f1);color:var(--mute);margin:0 0 8px}
-.cells{display:grid;grid-template-columns:repeat(auto-fill,minmax(50px,1fr));gap:6px}
-.cell{height:42px;display:grid;place-items:center;border-radius:10px;font:600 14px var(--f1);font-variant-numeric:tabular-nums;user-select:none;cursor:default}
-.cell.available,.sw.available{background:var(--okbg);color:var(--ok);box-shadow:inset 0 0 0 1.5px var(--ok)}
-.cell.reserved,.sw.reserved{color:var(--hold);background:repeating-linear-gradient(135deg,#F8F0DE 0 5px,#EEE0BF 5px 10px)}
-.cell.unavailable,.sw.unavailable{background:#E7EAF0;color:#8A93A6;text-decoration:line-through}
-#grid.in{animation:pop .5s cubic-bezier(.2,.8,.2,1)}
-@keyframes pop{from{opacity:.3;transform:scale(.985)}}
-.ov{position:fixed;inset:0;z-index:20;background:rgba(18,24,43,.55);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
-.ov.on{opacity:1;pointer-events:auto}
-.sheet{background:#fff;width:min(560px,100%);max-height:92dvh;display:flex;flex-direction:column;border-radius:24px 24px 0 0;transform:translateY(28px);transition:transform .38s cubic-bezier(.2,.8,.2,1)}
-.ov.on .sheet{transform:none}
-@media(min-width:640px){.ov{align-items:center}.sheet{border-radius:24px}}
-.sheet header{display:flex;justify-content:space-between;align-items:center;padding:20px 24px 12px}
-.sheet h2{font:800 24px var(--f1);margin:0;letter-spacing:-.01em}
-.x{border:0;background:var(--paper);width:38px;height:38px;border-radius:50%;font-size:22px;cursor:pointer}
-.body{padding:4px 24px 20px;overflow:auto}
-.step{display:none}.step.on{display:block}
-.q{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:14px;background:var(--paper)}
-.pk{display:flex;flex-wrap:wrap;gap:8px;content-visibility:auto;contain-intrinsic-size:auto 120px;margin-bottom:8px}
-.chip{min-width:56px;height:44px;padding:0 10px;border-radius:12px;border:1.5px solid var(--ok);background:var(--okbg);color:var(--ok);font:700 15px var(--f1);cursor:pointer;transition:all .18s}
-.chip.on{background:var(--ink);border-color:var(--ink);color:#fff;transform:translateY(-1px)}
-.empty{color:var(--mute);text-align:center;padding:24px 0}
-.sheet footer{display:flex;gap:14px;align-items:center;justify-content:space-between;padding:16px 24px;border-top:1px solid var(--line)}
-#cnt{font-weight:600}
-.btn{border:0;border-radius:999px;background:var(--ink);color:#fff;font:700 16px var(--f1);padding:14px 30px;cursor:pointer;transition:background .2s,opacity .2s}
-.btn:hover{background:#26335A}.btn:disabled{opacity:.4;cursor:not-allowed}.btn.full{width:100%}
-.btn.gold{background:var(--gold);color:var(--ink)}
-.qr{display:grid;place-items:center;margin:4px auto 14px;width:min(260px,70vw);aspect-ratio:1;border-radius:20px;border:1.5px solid var(--line);padding:12px;box-shadow:var(--sh)}
-.qr img{width:100%;height:100%;object-fit:contain;border-radius:8px}
-.note{text-align:center;color:var(--mute);font-size:15px;margin:0 0 16px}
-.reveal{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.2,.8,.2,1)}
-.reveal.open{grid-template-rows:1fr}.reveal>div{overflow:hidden}
-form{padding-top:20px}
-.f{margin-bottom:14px}
-.f label,.f .lb{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
-.f input[type=text],.f input[type=tel]{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff;transition:border-color .2s}
-.f input:focus{border-color:var(--ink);outline:0}
-.drop{display:flex;align-items:center;gap:12px;border:1.5px dashed #B5BDCF;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;background:var(--paper)}
-.drop:hover,.drop.over{border-color:var(--gold);background:#FBF5E8}
-.drop img{width:48px;height:48px;object-fit:cover;border-radius:8px}
-.drop small{color:var(--mute);display:block}
-.f.bad input,.f.bad .drop{border-color:var(--bad)}
-.e{color:var(--bad);font-size:13px;margin-top:4px;display:none}.f.bad .e{display:block}
-.toast{position:fixed;top:16px;left:50%;z-index:40;transform:translate(-50%,-140%);background:var(--ink);color:#fff;border-radius:16px;padding:14px 22px;box-shadow:0 20px 40px -12px rgba(0,0,0,.4);transition:transform .45s cubic-bezier(.2,.8,.2,1);width:min(440px,calc(100% - 24px));border-left:5px solid var(--gold)}
-.toast.on{transform:translate(-50%,0)}.toast.err{border-color:var(--bad)}
-.toast b{display:block;font-family:var(--f1)}.toast span{color:#C4CBDB;font-size:14px}
-@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+:root{
+  --ink:#12182B;
+  --paper:#F3F5F9;
+  --line:#DDE2EC;
+  --mute:#6B7488;
+  --ok:#0E8F6B;
+  --okbg:#E6F5EF;
+  --hold:#9A6A14;
+  --gold:#B98A2E;
+  --bad:#C0392B;
+  --sh:0 1px 2px rgba(18,24,43,.06),0 16px 36px -14px rgba(18,24,43,.2);
+  --f1:'Bricolage Grotesque',system-ui,sans-serif;
+  --f2:'Instrument Sans',system-ui,sans-serif
+}
+
+*{
+  box-sizing:border-box
+}
+
+[hidden]{
+  display:none!important
+}
+
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font:16px/1.5 var(--f2)
+}
+
+button,input{
+  font:inherit;
+  color:inherit
+}
+
+:focus-visible{
+  outline:3px solid var(--gold);
+  outline-offset:2px
+}
+
+.wrap{
+  max-width:1040px;
+  margin:0 auto
+}
+
+.hero{
+  background:var(--ink);
+  color:#fff;
+  padding:44px 20px 80px
+}
+
+.hero .wrap{
+  display:flex;
+  flex-wrap:wrap;
+  gap:28px;
+  align-items:flex-end;
+  justify-content:space-between
+}
+
+h1{
+  font:800 clamp(34px,6vw,54px)/1.02 var(--f1);
+  letter-spacing:-.02em;
+  margin:0 0 12px
+}
+
+.hero p{
+  margin:0;
+  color:#AEB7CC;
+  max-width:44ch
+}
+
+.buy{
+  font:700 19px var(--f1);
+  background:var(--gold);
+  color:var(--ink);
+  border:0;
+  border-radius:999px;
+  padding:17px 44px;
+  cursor:pointer;
+  box-shadow:0 12px 30px -8px rgba(185,138,46,.65);
+  transition:transform .2s,box-shadow .2s
+}
+
+.buy:hover{
+  transform:translateY(-2px);
+  box-shadow:0 16px 34px -8px rgba(185,138,46,.8)
+}
+
+main{
+  margin-top:-44px;
+  padding:0 16px 64px
+}
+
+.card{
+  background:#fff;
+  border-radius:22px;
+  box-shadow:var(--sh);
+  padding:24px
+}
+
+.legend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 22px;
+  margin-bottom:20px;
+  font-size:14px;
+  color:var(--mute)
+}
+
+.legend b{
+  color:var(--ink);
+  font:700 15px var(--f1);
+  margin-right:4px
+}
+
+.warn{
+  background:#FFF4E0;
+  border:1px solid #F0D9A8;
+  color:#7A5410;
+  border-radius:12px;
+  padding:12px 14px;
+  margin-bottom:16px;
+  font-size:14px
+}
+
+.sw{
+  display:inline-block;
+  width:13px;
+  height:13px;
+  border-radius:4px;
+  margin-right:7px;
+  vertical-align:-2px
+}
+
+.blk{
+  content-visibility:auto;
+  contain-intrinsic-size:auto 220px;
+  margin-bottom:22px
+}
+
+.blk h3{
+  font:600 13px var(--f1);
+  color:var(--mute);
+  margin:0 0 8px
+}
+
+.cells{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(50px,1fr));
+  gap:6px
+}
+
+.cell{
+  height:42px;
+  display:grid;
+  place-items:center;
+  border-radius:10px;
+  font:600 14px var(--f1);
+  font-variant-numeric:tabular-nums;
+  user-select:none;
+  cursor:default
+}
+
+.cell.available,
+.sw.available{
+  background:var(--okbg);
+  color:var(--ok);
+  box-shadow:inset 0 0 0 1.5px var(--ok)
+}
+
+.cell.reserved,
+.sw.reserved{
+  color:var(--hold);
+  background:repeating-linear-gradient(
+    135deg,
+    #F8F0DE 0 5px,
+    #EEE0BF 5px 10px
+  )
+}
+
+.cell.unavailable,
+.sw.unavailable{
+  background:#E7EAF0;
+  color:#8A93A6;
+  text-decoration:line-through
+}
+
+#grid.in{
+  animation:pop .5s cubic-bezier(.2,.8,.2,1)
+}
+
+@keyframes pop{
+  from{
+    opacity:.3;
+    transform:scale(.985)
+  }
+}
+
+.ov{
+  position:fixed;
+  inset:0;
+  z-index:20;
+  background:rgba(18,24,43,.55);
+  backdrop-filter:blur(4px);
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .25s
+}
+
+.ov.on{
+  opacity:1;
+  pointer-events:auto
+}
+
+.sheet{
+  background:#fff;
+  width:min(560px,100%);
+  max-height:92dvh;
+  display:flex;
+  flex-direction:column;
+  border-radius:24px 24px 0 0;
+  transform:translateY(28px);
+  transition:transform .38s cubic-bezier(.2,.8,.2,1)
+}
+
+.ov.on .sheet{
+  transform:none
+}
+
+@media(min-width:640px){
+  .ov{
+    align-items:center
+  }
+
+  .sheet{
+    border-radius:24px
+  }
+}
+
+.sheet header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:20px 24px 12px
+}
+
+.sheet h2{
+  font:800 24px var(--f1);
+  margin:0;
+  letter-spacing:-.01em
+}
+
+.x{
+  border:0;
+  background:var(--paper);
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  font-size:22px;
+  cursor:pointer
+}
+
+.body{
+  padding:4px 24px 20px;
+  overflow:auto
+}
+
+.step{
+  display:none
+}
+
+.step.on{
+  display:block
+}
+
+.q{
+  width:100%;
+  border:1.5px solid var(--line);
+  border-radius:12px;
+  padding:11px 14px;
+  margin-bottom:14px;
+  background:var(--paper)
+}
+
+.pk{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  content-visibility:auto;
+  contain-intrinsic-size:auto 120px;
+  margin-bottom:8px
+}
+
+.chip{
+  min-width:56px;
+  height:44px;
+  padding:0 10px;
+  border-radius:12px;
+  border:1.5px solid var(--ok);
+  background:var(--okbg);
+  color:var(--ok);
+  font:700 15px var(--f1);
+  cursor:pointer;
+  transition:all .18s
+}
+
+.chip.on{
+  background:var(--ink);
+  border-color:var(--ink);
+  color:#fff;
+  transform:translateY(-1px)
+}
+
+.empty{
+  color:var(--mute);
+  text-align:center;
+  padding:24px 0
+}
+
+.sheet footer{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 24px;
+  border-top:1px solid var(--line)
+}
+
+#cnt{
+  font-weight:600
+}
+
+.btn{
+  border:0;
+  border-radius:999px;
+  background:var(--ink);
+  color:#fff;
+  font:700 16px var(--f1);
+  padding:14px 30px;
+  cursor:pointer;
+  transition:background .2s,opacity .2s
+}
+
+.btn:hover{
+  background:#26335A
+}
+
+.btn:disabled{
+  opacity:.4;
+  cursor:not-allowed
+}
+
+.btn.full{
+  width:100%
+}
+
+.btn.gold{
+  background:var(--gold);
+  color:var(--ink)
+}
+
+.qr{
+  display:grid;
+  place-items:center;
+  margin:4px auto 14px;
+  width:min(260px,70vw);
+  aspect-ratio:1;
+  border-radius:20px;
+  border:1.5px solid var(--line);
+  padding:12px;
+  box-shadow:var(--sh)
+}
+
+.qr img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  border-radius:8px
+}
+
+.note{
+  text-align:center;
+  color:var(--mute);
+  font-size:15px;
+  margin:0 0 16px
+}
+
+.reveal{
+  display:grid;
+  grid-template-rows:0fr;
+  transition:grid-template-rows .45s cubic-bezier(.2,.8,.2,1)
+}
+
+.reveal.open{
+  grid-template-rows:1fr
+}
+
+.reveal>div{
+  overflow:hidden
+}
+
+form{
+  padding-top:20px
+}
+
+.f{
+  margin-bottom:14px
+}
+
+.f label,
+.f .lb{
+  display:block;
+  font-weight:600;
+  font-size:14px;
+  margin-bottom:6px
+}
+
+.f input[type=text],
+.f input[type=tel]{
+  width:100%;
+  border:1.5px solid var(--line);
+  border-radius:12px;
+  padding:12px 14px;
+  background:#fff;
+  transition:border-color .2s
+}
+
+.f input:focus{
+  border-color:var(--ink);
+  outline:0
+}
+
+.drop{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  border:1.5px dashed #B5BDCF;
+  border-radius:14px;
+  padding:16px;
+  cursor:pointer;
+  transition:all .2s;
+  background:var(--paper)
+}
+
+.drop:hover,
+.drop.over{
+  border-color:var(--gold);
+  background:#FBF5E8
+}
+
+.drop img{
+  width:48px;
+  height:48px;
+  object-fit:cover;
+  border-radius:8px
+}
+
+.drop small{
+  color:var(--mute);
+  display:block
+}
+
+.f.bad input,
+.f.bad .drop{
+  border-color:var(--bad)
+}
+
+.e{
+  color:var(--bad);
+  font-size:13px;
+  margin-top:4px;
+  display:none
+}
+
+.f.bad .e{
+  display:block
+}
+
+.toast{
+  position:fixed;
+  top:16px;
+  left:50%;
+  z-index:40;
+  transform:translate(-50%,-140%);
+  background:var(--ink);
+  color:#fff;
+  border-radius:16px;
+  padding:14px 22px;
+  box-shadow:0 20px 40px -12px rgba(0,0,0,.4);
+  transition:transform .45s cubic-bezier(.2,.8,.2,1);
+  width:min(440px,calc(100% - 24px));
+  border-left:5px solid var(--gold)
+}
+
+.toast.on{
+  transform:translate(-50%,0)
+}
+
+.toast.err{
+  border-color:var(--bad)
+}
+
+.toast b{
+  display:block;
+  font-family:var(--f1)
+}
+
+.toast span{
+  color:#C4CBDB;
+  font-size:14px
+}
+
+@media(prefers-reduced-motion:reduce){
+  *{
+    transition:none!important;
+    animation:none!important
+  }
+}
+
 </style>
 </head>
 
@@ -82,353 +541,717 @@ form{padding-top:20px}
 
 <div class="hero">
   <div class="wrap">
+
     <div>
       <h1>Reserva tu número</h1>
-      <p>Elige uno o varios números disponibles, paga con QR y envía tu comprobante. Te confirmaremos apenas lo revisemos.</p>
+
+      <p>
+        Elige uno o varios números disponibles,
+        paga con QR y envía tu comprobante.
+        Te confirmaremos apenas lo revisemos.
+      </p>
     </div>
-    <button class="buy" id="buy">Comprar</button>
+
+    <button class="buy" id="buy">
+      Comprar
+    </button>
+
   </div>
 </div>
 
+
 <main class="wrap">
+
   <div class="card">
-    <div class="warn" id="warn" hidden></div>
-    <div class="legend" id="legend"></div>
-    <div id="grid" aria-label="Números (solo referencia)"></div>
+
+    <div
+      class="warn"
+      id="warn"
+      hidden>
+    </div>
+
+    <div
+      class="legend"
+      id="legend">
+    </div>
+
+    <div
+      id="grid"
+      aria-label="Números (solo referencia)">
+    </div>
+
   </div>
+
 </main>
 
+
 <div class="ov" id="ov">
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ttl">
+
+  <div
+    class="sheet"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="ttl">
 
     <header>
+
       <h2 id="ttl"></h2>
-      <button class="x" id="x" aria-label="Cerrar">&times;</button>
+
+      <button
+        class="x"
+        id="x"
+        aria-label="Cerrar">
+        &times;
+      </button>
+
     </header>
+
 
     <div class="body">
 
-      <div class="step" id="s1">
-        <input class="q" id="q" type="search" placeholder="Buscar un número" inputmode="numeric" aria-label="Buscar un número">
+      <!-- PASO 1 -->
+
+      <div
+        class="step"
+        id="s1">
+
+        <input
+          class="q"
+          id="q"
+          type="search"
+          placeholder="Buscar un número"
+          inputmode="numeric"
+          aria-label="Buscar un número">
+
         <div id="list"></div>
+
       </div>
 
-      <div class="step" id="s2">
+
+      <!-- PASO 2 -->
+
+      <div
+        class="step"
+        id="s2">
 
         <div class="qr">
-          <img id="qrimg" alt="Código QR de pago" src="./qr.jpg">
+
+          <img
+            id="qrimg"
+            alt="Código QR de pago"
+            src="./qr.jpg">
+
         </div>
 
+
         <p class="note">
-          Se solicitara el comprobante de pago, porfavor guarda una imagen del comprobante.
+          Se solicitara el comprobante de pago,
+          porfavor guarda una imagen del comprobante.
         </p>
 
-        <button class="btn full gold" id="paid" type="button">
+
+        <button
+          class="btn full gold"
+          id="paid"
+          type="button">
           Pagado
         </button>
 
-        <div class="reveal" id="rev">
+
+        <div
+          class="reveal"
+          id="rev">
+
           <div>
 
-            <form id="form" novalidate>
+            <!--
+              FORMULARIO REAL DE FORMSPREE
 
-              <div class="f" data-f="name">
-                <label for="nm">Nombre</label>
-                <input id="nm" type="text" autocomplete="name">
-                <div class="e">Escribe tu nombre.</div>
+              IMPORTANTE:
+              No usamos fetch() hacia Formspree.
+              Este formulario hace un POST HTML normal.
+            -->
+
+            <form
+              id="form"
+              method="POST"
+              action="https://formspree.io/f/xwlpbwjw"
+              enctype="multipart/form-data"
+              target="formspree_target"
+              novalidate>
+
+
+              <!-- NOMBRE -->
+
+              <div
+                class="f"
+                data-f="name">
+
+                <label for="nm">
+                  Nombre
+                </label>
+
+                <input
+                  id="nm"
+                  name="Nombre"
+                  type="text"
+                  autocomplete="name">
+
+                <div class="e">
+                  Escribe tu nombre.
+                </div>
+
               </div>
 
-              <div class="f" data-f="phone">
-                <label for="ph">Teléfono</label>
-                <input id="ph" type="tel" autocomplete="tel" inputmode="tel">
-                <div class="e">Escribe un teléfono válido.</div>
+
+              <!-- TELÉFONO -->
+
+              <div
+                class="f"
+                data-f="phone">
+
+                <label for="ph">
+                  Teléfono
+                </label>
+
+                <input
+                  id="ph"
+                  name="Teléfono"
+                  type="tel"
+                  autocomplete="tel"
+                  inputmode="tel">
+
+                <div class="e">
+                  Escribe un teléfono válido.
+                </div>
+
               </div>
 
-              <div class="f" data-f="file">
-                <span class="lb">Comprobante de pago</span>
 
-                <label class="drop" id="drop" for="fl">
+              <!-- COMPROBANTE -->
+
+              <div
+                class="f"
+                data-f="file">
+
+                <span class="lb">
+                  Comprobante de pago
+                </span>
+
+
+                <label
+                  class="drop"
+                  id="drop"
+                  for="fl">
+
                   <span id="dropTxt">
-                    <b>Sube la imagen del comprobante</b>
-                    <small>Toca aquí o arrástrala</small>
+
+                    <b>
+                      Sube la imagen del comprobante
+                    </b>
+
+                    <small>
+                      Toca aquí o arrástrala
+                    </small>
+
                   </span>
+
 
                   <input
                     id="fl"
                     name="Comprobante"
                     type="file"
                     accept="image/*"
-                    hidden
-                  >
+                    hidden>
+
                 </label>
 
-                <div class="e">Sube la imagen del comprobante.</div>
+
+                <div class="e">
+                  Sube la imagen del comprobante.
+                </div>
+
               </div>
 
-              <button class="btn full" id="send" type="submit">
+
+              <!-- CAMPOS QUE JAVASCRIPT RELLENA -->
+
+              <input
+                type="hidden"
+                name="_subject"
+                id="fsSubject">
+
+              <input
+                type="hidden"
+                name="Números pagados"
+                id="fsNumbers">
+
+              <input
+                type="hidden"
+                name="Pedido"
+                id="fsOrder">
+
+              <input
+                type="hidden"
+                name="Aprobar"
+                id="fsApprove">
+
+              <input
+                type="hidden"
+                name="message"
+                id="fsMessage">
+
+
+              <button
+                class="btn full"
+                id="send"
+                type="submit">
+
                 Enviar
+
               </button>
 
             </form>
 
           </div>
+
         </div>
 
       </div>
 
     </div>
 
+
     <footer id="foot">
+
       <span id="cnt"></span>
-      <button class="btn" id="go" disabled>Continuar</button>
+
+      <button
+        class="btn"
+        id="go"
+        disabled>
+
+        Continuar
+
+      </button>
+
     </footer>
 
   </div>
+
 </div>
 
-<div class="toast" id="toast" role="status" aria-live="polite">
-  <b></b>
-  <span></span>
-</div>
 
 <!--
-  IFRAME OCULTO PARA EL POST NORMAL A FORMSPREE.
-  No usamos fetch() hacia Formspree, evitando el problema CORS.
+  Formspree recibe aquí su respuesta.
+  El usuario permanece en nuestra página.
 -->
+
 <iframe
   name="formspree_target"
   id="formspree_target"
   hidden>
 </iframe>
 
+
+<div
+  class="toast"
+  id="toast"
+  role="status"
+  aria-live="polite">
+
+  <b></b>
+  <span></span>
+
+</div>
+
+
 <script>
 
-/* ---------- CONFIG ---------- */
+
+/* =========================================================
+   CONFIG
+   ========================================================= */
 
 const CONFIG = {
+
   MODE: 'server',
-  KVDB_URL: 'https://kvdb.io/X9xZvhLutQBALSAaNbJ5nv/numbers',
-  API: '/api/numbers',
 
-  /*
-    Este endpoint se usa mediante POST HTML tradicional.
-    NO se usa fetch(), porque eso provocaba el error CORS.
-  */
-  FORMSPREE: 'https://formspree.io/f/xwlpbwjw',
+  KVDB_URL:
+    'https://kvdb.io/X9xZvhLutQBALSAaNbJ5nv/numbers',
 
-  NOTIFY_EMAIL: 'angierodca@gmail.com',
-  APPROVE_BASE: ''
+  API:
+    '/api/numbers',
+
+  FORMSPREE:
+    'https://formspree.io/f/xwlpbwjw',
+
+  NOTIFY_EMAIL:
+    'angierodca@gmail.com',
+
+  APPROVE_BASE:
+    ''
+
 };
 
-
-/* ---------- VARIABLES ---------- */
 
 const LBL = {
-  available: 'Disponible',
-  reserved: 'En proceso',
-  unavailable: 'Pagado'
+
+  available:
+    'Disponible',
+
+  reserved:
+    'En proceso',
+
+  unavailable:
+    'Pagado'
+
 };
 
-const $ = s => document.querySelector(s);
 
-const uid = () =>
-  crypto.randomUUID
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2) +
-      Date.now().toString(36);
+const $ =
+  s =>
+    document.querySelector(s);
 
-const free = n =>
-  n &&
-  (
-    n.status === 'available' ||
+
+const uid =
+  () =>
+    crypto.randomUUID
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2) +
+        Date.now().toString(36);
+
+
+const free =
+  n =>
+    n &&
     (
-      n.status === 'reserved' &&
-      n.at &&
-      !n.name &&
-      Date.now() - n.at > 9e5
-    )
-  );
+      n.status === 'available' ||
+
+      (
+        n.status === 'reserved' &&
+        n.at &&
+        !n.name &&
+        Date.now() - n.at > 9e5
+      )
+    );
+
 
 let DB = [];
-let sel = new Set();
-let order = null;
-let sent = false;
-let file = null;
-let busy = false;
-let offline = false;
+
+let sel =
+  new Set();
+
+let order =
+  null;
+
+let sent =
+  false;
+
+let file =
+  null;
+
+let busy =
+  false;
+
+let offline =
+  false;
 
 
-/* ---------- LÓGICA DE DATOS ---------- */
+/* =========================================================
+   LÓGICA DE DATOS
+   ========================================================= */
 
 function apply(L, a, p) {
 
-  const mine = n => n.orderId === p.orderId;
+  const mine =
+    n =>
+      n.orderId === p.orderId;
+
 
   if (a === 'reserve') {
 
-    const m = new Map(
-      L.map(n => [String(n.num), n])
-    );
+    const m =
+      new Map(
+        L.map(
+          n =>
+            [
+              String(n.num),
+              n
+            ]
+        )
+      );
+
 
     if (
       p.nums.some(
-        x => !free(m.get(x))
+        x =>
+          !free(
+            m.get(x)
+          )
       )
     ) {
-      throw new Error('conflict');
+
+      throw new Error(
+        'conflict'
+      );
+
     }
 
-    p.nums.forEach(x =>
-      Object.assign(
-        m.get(x),
-        {
-          status: 'reserved',
-          name: '',
-          phone: '',
-          confirm: false,
-          orderId: p.orderId,
-          at: p.at
-        }
-      )
+
+    p.nums.forEach(
+      x =>
+        Object.assign(
+          m.get(x),
+          {
+            status:
+              'reserved',
+
+            name:
+              '',
+
+            phone:
+              '',
+
+            confirm:
+              false,
+
+            orderId:
+              p.orderId,
+
+            at:
+              p.at
+          }
+        )
     );
+
   }
+
 
   if (a === 'release') {
 
     L
-      .filter(n => mine(n) && !n.name)
-      .forEach(n =>
-        Object.assign(
-          n,
-          {
-            status: 'available',
-            orderId: '',
-            at: 0
-          }
-        )
+      .filter(
+        n =>
+          mine(n) &&
+          !n.name
+      )
+      .forEach(
+        n =>
+          Object.assign(
+            n,
+            {
+              status:
+                'available',
+
+              orderId:
+                '',
+
+              at:
+                0
+            }
+          )
       );
+
   }
+
 
   if (a === 'submit') {
 
     L
       .filter(mine)
-      .forEach(n =>
-        Object.assign(
-          n,
-          {
-            status: 'reserved',
-            name: p.name,
-            phone: p.phone,
-            confirm: false
-          }
-        )
+      .forEach(
+        n =>
+          Object.assign(
+            n,
+            {
+              status:
+                'reserved',
+
+              name:
+                p.name,
+
+              phone:
+                p.phone,
+
+              confirm:
+                false
+            }
+          )
       );
+
   }
+
 
   if (a === 'approve') {
 
     L
       .filter(mine)
-      .forEach(n =>
-        Object.assign(
-          n,
-          {
-            status: 'unavailable',
-            confirm: true
-          }
-        )
+      .forEach(
+        n =>
+          Object.assign(
+            n,
+            {
+              status:
+                'unavailable',
+
+              confirm:
+                true
+            }
+          )
       );
+
   }
 
+
   return L;
+
 }
 
 
-/* ---------- DATOS INICIALES ---------- */
+/* =========================================================
+   SEED
+   ========================================================= */
 
-const seed = async () => {
+const seed =
+  async () => {
 
-  try {
+    try {
 
-    const r = await fetch(
-      './numbers.json',
-      {
-        cache: 'no-store'
-      }
-    );
-
-    if (r.ok) {
-      return await r.json();
-    }
-
-  } catch (e) {}
-
-  return Array.from(
-    { length: 100 },
-    (_, i) => ({
-      num: String(i).padStart(2, '0'),
-      status: 'available',
-      name: '',
-      phone: '',
-      confirm: false
-    })
-  );
-};
-
-
-/* ---------- STORE ---------- */
-
-const Store = {
-
-  async read() {
-
-    if (CONFIG.MODE === 'server') {
-
-      try {
-
-        const r = await fetch(
-          CONFIG.API,
+      const r =
+        await fetch(
+          './numbers.json',
           {
-            cache: 'no-store'
+            cache:
+              'no-store'
           }
         );
 
+
+      if (r.ok) {
+
+        return await r.json();
+
+      }
+
+    } catch (e) {}
+
+
+    return Array.from(
+      {
+        length:
+          100
+      },
+      (_, i) => ({
+
+        num:
+          String(i)
+            .padStart(
+              2,
+              '0'
+            ),
+
+        status:
+          'available',
+
+        name:
+          '',
+
+        phone:
+          '',
+
+        confirm:
+          false
+
+      })
+    );
+
+  };
+
+
+/* =========================================================
+   STORE
+   ========================================================= */
+
+const Store = {
+
+
+  async read() {
+
+    if (
+      CONFIG.MODE ===
+      'server'
+    ) {
+
+      try {
+
+        const r =
+          await fetch(
+            CONFIG.API,
+            {
+              cache:
+                'no-store'
+            }
+          );
+
+
         if (!r.ok) {
-          throw new Error('api');
+
+          throw new Error(
+            'api'
+          );
+
         }
 
-        offline = false;
+
+        offline =
+          false;
+
 
         return await r.json();
 
       } catch (e) {
 
-        offline = true;
+        offline =
+          true;
 
         return seed();
+
       }
+
     }
 
 
-    if (CONFIG.MODE === 'kvdb') {
+    if (
+      CONFIG.MODE ===
+      'kvdb'
+    ) {
 
-      const r = await fetch(
-        CONFIG.KVDB_URL,
-        {
-          cache: 'no-store'
-        }
-      );
+      const r =
+        await fetch(
+          CONFIG.KVDB_URL,
+          {
+            cache:
+              'no-store'
+          }
+        );
+
 
       if (r.ok) {
+
         return r.json();
+
       }
 
-      const s = await seed();
+
+      const s =
+        await seed();
+
 
       await this.write(s);
 
       return s;
+
     }
 
 
@@ -437,26 +1260,40 @@ const Store = {
         'numbers_demo'
       );
 
+
     return o
       ? JSON.parse(o)
       : seed();
+
   },
 
 
   async write(L) {
 
-    if (CONFIG.MODE === 'kvdb') {
+    if (
+      CONFIG.MODE ===
+      'kvdb'
+    ) {
 
-      const r = await fetch(
-        CONFIG.KVDB_URL,
-        {
-          method: 'PUT',
-          body: JSON.stringify(L)
-        }
-      );
+      const r =
+        await fetch(
+          CONFIG.KVDB_URL,
+          {
+            method:
+              'PUT',
+
+            body:
+              JSON.stringify(L)
+          }
+        );
+
 
       if (!r.ok) {
-        throw new Error('write');
+
+        throw new Error(
+          'write'
+        );
+
       }
 
     } else {
@@ -465,92 +1302,174 @@ const Store = {
         'numbers_demo',
         JSON.stringify(L)
       );
+
     }
+
   },
 
 
   async mutate(a, p) {
 
-    if (CONFIG.MODE === 'server') {
+    if (
+      CONFIG.MODE ===
+      'server'
+    ) {
 
-      const r = await fetch(
-        CONFIG.API,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            action: a,
-            ...p
-          })
-        }
-      );
+      const r =
+        await fetch(
+          CONFIG.API,
+          {
+            method:
+              'POST',
 
-      if (r.status === 409) {
-        throw new Error('conflict');
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
+
+            body:
+              JSON.stringify({
+                action:
+                  a,
+
+                ...p
+              })
+          }
+        );
+
+
+      if (
+        r.status ===
+        409
+      ) {
+
+        throw new Error(
+          'conflict'
+        );
+
       }
+
 
       if (!r.ok) {
-        throw new Error('api');
+
+        throw new Error(
+          'api'
+        );
+
       }
 
+
       return r.json();
+
     }
 
 
-    const L = await this.read();
+    const L =
+      await this.read();
 
-    apply(L, a, p);
 
-    await this.write(L);
+    apply(
+      L,
+      a,
+      p
+    );
+
+
+    await this.write(
+      L
+    );
+
 
     return L;
+
   }
 
 };
 
 
-/* ---------- TOAST ---------- */
+/* =========================================================
+   TOAST
+   ========================================================= */
 
-function toast(t, s, kind) {
+function toast(
+  t,
+  s,
+  kind
+) {
 
-  const e = $('#toast');
+  const e =
+    $('#toast');
+
 
   e.className =
     'toast' +
-    (kind === 'err' ? ' err' : '');
+    (
+      kind === 'err'
+        ? ' err'
+        : ''
+    );
 
-  e.querySelector('b').textContent = t;
 
-  e.querySelector('span').textContent =
+  e.querySelector(
+    'b'
+  ).textContent =
+    t;
+
+
+  e.querySelector(
+    'span'
+  ).textContent =
     s || '';
 
-  requestAnimationFrame(() =>
-    e.classList.add('on')
-  );
 
-  clearTimeout(toast.t);
-
-  toast.t = setTimeout(
+  requestAnimationFrame(
     () =>
-      e.classList.remove('on'),
-    5000
+      e.classList.add(
+        'on'
+      )
   );
+
+
+  clearTimeout(
+    toast.t
+  );
+
+
+  toast.t =
+    setTimeout(
+      () =>
+        e.classList.remove(
+          'on'
+        ),
+      5000
+    );
+
 }
 
 
-/* ---------- GRID ---------- */
+/* =========================================================
+   GRID
+   ========================================================= */
 
 function renderGrid() {
 
   const c = {
-    available: 0,
-    reserved: 0,
-    unavailable: 0
+
+    available:
+      0,
+
+    reserved:
+      0,
+
+    unavailable:
+      0
+
   };
 
-  let h = '';
+
+  let h =
+    '';
+
 
   for (
     let i = 0;
@@ -559,7 +1478,11 @@ function renderGrid() {
   ) {
 
     const part =
-      DB.slice(i, i + 100);
+      DB.slice(
+        i,
+        i + 100
+      );
+
 
     h +=
       `<section class="blk">
@@ -568,16 +1491,22 @@ function renderGrid() {
           a
           ${part[part.length - 1].num}
         </h3>
+
         <div class="cells">`;
 
-    for (const n of part) {
+
+    for (
+      const n of part
+    ) {
 
       const s =
         free(n)
           ? 'available'
           : n.status;
 
+
       c[s]++;
+
 
       h +=
         `<span
@@ -586,32 +1515,49 @@ function renderGrid() {
         >
           ${n.num}
         </span>`;
+
     }
+
 
     h +=
       `</div>
       </section>`;
+
   }
 
-  const g = $('#grid');
 
-  g.innerHTML = h;
+  const g =
+    $('#grid');
 
-  g.classList.remove('in');
+
+  g.innerHTML =
+    h;
+
+
+  g.classList.remove(
+    'in'
+  );
+
 
   void g.offsetWidth;
 
-  g.classList.add('in');
+
+  g.classList.add(
+    'in'
+  );
 
 
   $('#legend').innerHTML =
-    Object.keys(LBL)
-      .map(k =>
-        `<span>
-          <i class="sw ${k}"></i>
-          <b>${c[k]}</b>
-          ${LBL[k].toLowerCase()}
-        </span>`
+    Object.keys(
+      LBL
+    )
+      .map(
+        k =>
+          `<span>
+            <i class="sw ${k}"></i>
+            <b>${c[k]}</b>
+            ${LBL[k].toLowerCase()}
+          </span>`
       )
       .join('');
 
@@ -620,22 +1566,35 @@ function renderGrid() {
     !c.available;
 
 
-  const w = $('#warn');
+  const w =
+    $('#warn');
 
-  w.hidden = !offline;
+
+  w.hidden =
+    !offline;
+
 
   w.textContent =
-    'No hay conexión con el servidor. Estás viendo los números de referencia. Recarga la página cuando el servidor esté disponible.';
+    'No hay conexión con el servidor. Estás viendo los números de referencia. Recarga cuando el servidor esté disponible.';
+
 }
 
 
-/* ---------- PICKER ---------- */
+/* =========================================================
+   PICKER
+   ========================================================= */
 
 function buildPicker() {
 
-  const L = DB.filter(free);
+  const L =
+    DB.filter(
+      free
+    );
 
-  let h = '';
+
+  let h =
+    '';
+
 
   for (
     let i = 0;
@@ -645,49 +1604,66 @@ function buildPicker() {
 
     h +=
       '<div class="pk">' +
+
       L
-        .slice(i, i + 100)
-        .map(n =>
-          `<button
-            type="button"
-            class="chip${sel.has(String(n.num)) ? ' on' : ''}"
-            data-n="${n.num}"
-            aria-pressed="${sel.has(String(n.num))}"
-          >
-            ${n.num}
-          </button>`
+        .slice(
+          i,
+          i + 100
+        )
+        .map(
+          n =>
+            `<button
+              type="button"
+              class="chip${sel.has(String(n.num)) ? ' on' : ''}"
+              data-n="${n.num}"
+              aria-pressed="${sel.has(String(n.num))}"
+            >
+              ${n.num}
+            </button>`
         )
         .join('') +
+
       '</div>';
+
   }
+
 
   $('#list').innerHTML =
     L.length
       ? h
       : '<p class="empty">Ya no quedan números disponibles.</p>';
 
+
   upd();
+
 }
 
 
 function upd() {
 
-  const k = sel.size;
+  const k =
+    sel.size;
+
 
   $('#cnt').textContent =
     k
       ? `${k} ${k > 1 ? 'números elegidos' : 'número elegido'}`
       : 'Elige uno o más números';
 
+
   $('#go').disabled =
-    !k || busy;
+    !k ||
+    busy;
+
 }
 
 
 function step(n) {
 
   document
-    .querySelectorAll('.step')
+    .querySelectorAll(
+      '.step'
+    )
     .forEach(
       (s, i) =>
         s.classList.toggle(
@@ -696,23 +1672,29 @@ function step(n) {
         )
     );
 
+
   $('#ttl').textContent =
     n === 1
       ? 'Elige tus números'
       : 'Paga con QR';
 
+
   $('#foot').hidden =
     n !== 1;
+
 }
 
 
-/* ---------- OPEN ---------- */
+/* =========================================================
+   OPEN
+   ========================================================= */
 
 async function open() {
 
   try {
 
-    DB = await Store.read();
+    DB =
+      await Store.read();
 
   } catch (e) {
 
@@ -721,6 +1703,7 @@ async function open() {
       'Revisa tu conexión e inténtalo de nuevo.',
       'err'
     );
+
   }
 
 
@@ -728,31 +1711,52 @@ async function open() {
 
     renderGrid();
 
+
     return toast(
       'Servidor no disponible',
       'Recarga la página cuando el servidor esté disponible.',
       'err'
     );
+
   }
 
 
   sel.clear();
 
-  $('#q').value = '';
+
+  $('#q').value =
+    '';
+
 
   buildPicker();
 
+
   step(1);
 
-  $('#ov').classList.add('on');
+
+  $('#ov')
+    .classList
+    .add(
+      'on'
+    );
+
 }
 
 
-/* ---------- CLOSE ---------- */
+/* =========================================================
+   CLOSE
+   ========================================================= */
 
-async function close(release = true) {
+async function close(
+  release = true
+) {
 
-  $('#ov').classList.remove('on');
+  $('#ov')
+    .classList
+    .remove(
+      'on'
+    );
+
 
   if (
     order &&
@@ -766,68 +1770,105 @@ async function close(release = true) {
         await Store.mutate(
           'release',
           {
-            orderId: order
+            orderId:
+              order
           }
         );
+
 
       renderGrid();
 
     } catch (e) {}
+
   }
 
 
-  order = null;
+  order =
+    null;
 
-  sent = false;
 
-  file = null;
+  sent =
+    false;
+
+
+  file =
+    null;
+
 
   sel.clear();
 
 
-  setTimeout(() => {
+  setTimeout(
+    () => {
 
-    $('#rev')
-      .classList
-      .remove('open');
+      $('#rev')
+        .classList
+        .remove(
+          'open'
+        );
 
-    $('#form').reset();
 
-    resetDrop();
+      $('#form').reset();
 
-    document
-      .querySelectorAll('.f')
-      .forEach(
-        f =>
-          f.classList.remove('bad')
-      );
 
-    $('#paid').hidden = false;
+      resetDrop();
 
-  }, 350);
+
+      document
+        .querySelectorAll(
+          '.f'
+        )
+        .forEach(
+          f =>
+            f.classList.remove(
+              'bad'
+            )
+        );
+
+
+      $('#paid').hidden =
+        false;
+
+    },
+    350
+  );
+
 }
 
 
-/* ---------- EVENTOS ---------- */
+/* =========================================================
+   EVENTOS
+   ========================================================= */
 
-$('#buy').onclick = open;
+$('#buy').onclick =
+  open;
+
 
 $('#x').onclick =
-  () => close(true);
+  () =>
+    close(
+      true
+    );
 
 
-$('#ov').addEventListener(
-  'mousedown',
-  e => {
+$('#ov')
+  .addEventListener(
+    'mousedown',
+    e => {
 
-    if (
-      e.target.id === 'ov'
-    ) {
-      close(true);
+      if (
+        e.target.id ===
+        'ov'
+      ) {
+
+        close(
+          true
+        );
+
+      }
+
     }
-
-  }
-);
+  );
 
 
 document.addEventListener(
@@ -835,213 +1876,328 @@ document.addEventListener(
   e => {
 
     if (
-      e.key === 'Escape' &&
+      e.key ===
+      'Escape' &&
+
       $('#ov')
         .classList
-        .contains('on')
+        .contains(
+          'on'
+        )
     ) {
-      close(true);
+
+      close(
+        true
+      );
+
     }
 
   }
 );
 
 
-/* ---------- SELECCIÓN ---------- */
+/* =========================================================
+   SELECCIÓN
+   ========================================================= */
 
-$('#list').onclick = e => {
+$('#list')
+  .onclick =
+  e => {
 
-  const b =
-    e.target.closest('.chip');
-
-  if (!b) {
-    return;
-  }
-
-  const n = b.dataset.n;
-
-  if (sel.has(n)) {
-    sel.delete(n);
-  } else {
-    sel.add(n);
-  }
-
-  b.classList.toggle(
-    'on'
-  );
-
-  b.setAttribute(
-    'aria-pressed',
-    sel.has(n)
-  );
-
-  upd();
-};
-
-
-$('#q').oninput = e => {
-
-  const v =
-    e.target.value.trim();
-
-  document
-    .querySelectorAll('.chip')
-    .forEach(
-      c =>
-        c.hidden =
-          !!v &&
-          !c.dataset.n.startsWith(v)
-    );
-};
-
-
-/* ---------- RESERVAR ---------- */
-
-$('#go').onclick = async () => {
-
-  busy = true;
-
-  $('#go').textContent =
-    'Reservando…';
-
-  upd();
-
-
-  try {
-
-    order = uid();
-
-    DB =
-      await Store.mutate(
-        'reserve',
-        {
-          nums: [...sel],
-          orderId: order,
-          at: Date.now()
-        }
+    const b =
+      e.target.closest(
+        '.chip'
       );
 
-    renderGrid();
 
-    step(2);
+    if (!b) {
+      return;
+    }
 
-  } catch (e) {
 
-    order = null;
+    const n =
+      b.dataset.n;
+
 
     if (
-      e.message === 'conflict'
+      sel.has(n)
     ) {
 
-      toast(
-        'Alguien reservó uno de tus números',
-        'Actualizamos la lista, elige de nuevo.',
-        'err'
-      );
-
-      try {
-        DB = await Store.read();
-      } catch (_) {}
-
-      sel.clear();
-
-      buildPicker();
-
-      renderGrid();
+      sel.delete(n);
 
     } else {
 
-      toast(
-        'No pudimos reservar',
-        'Inténtalo de nuevo en unos segundos.',
-        'err'
-      );
+      sel.add(n);
+
     }
-  }
 
 
-  busy = false;
-
-  $('#go').textContent =
-    'Continuar';
-
-  upd();
-};
+    b.classList.toggle(
+      'on'
+    );
 
 
-/* ---------- QR ---------- */
+    b.setAttribute(
+      'aria-pressed',
+      sel.has(n)
+    );
+
+
+    upd();
+
+  };
+
+
+$('#q').oninput =
+  e => {
+
+    const v =
+      e.target.value.trim();
+
+
+    document
+      .querySelectorAll(
+        '.chip'
+      )
+      .forEach(
+        c =>
+          c.hidden =
+            !!v &&
+            !c.dataset.n.startsWith(
+              v
+            )
+      );
+
+  };
+
+
+/* =========================================================
+   RESERVAR
+   ========================================================= */
+
+$('#go').onclick =
+  async () => {
+
+    busy =
+      true;
+
+
+    $('#go').textContent =
+      'Reservando…';
+
+
+    upd();
+
+
+    try {
+
+      order =
+        uid();
+
+
+      DB =
+        await Store.mutate(
+          'reserve',
+          {
+            nums:
+              [...sel],
+
+            orderId:
+              order,
+
+            at:
+              Date.now()
+          }
+        );
+
+
+      renderGrid();
+
+
+      step(2);
+
+    } catch (e) {
+
+      order =
+        null;
+
+
+      if (
+        e.message ===
+        'conflict'
+      ) {
+
+        toast(
+          'Alguien reservó uno de tus números',
+          'Actualizamos la lista, elige de nuevo.',
+          'err'
+        );
+
+
+        try {
+
+          DB =
+            await Store.read();
+
+        } catch (_) {}
+
+
+        sel.clear();
+
+
+        buildPicker();
+
+
+        renderGrid();
+
+      } else {
+
+        toast(
+          'No pudimos reservar',
+          'Inténtalo de nuevo en unos segundos.',
+          'err'
+        );
+
+      }
+
+    }
+
+
+    busy =
+      false;
+
+
+    $('#go').textContent =
+      'Continuar';
+
+
+    upd();
+
+  };
+
+
+/* =========================================================
+   QR
+   ========================================================= */
 
 $('#qrimg').onerror =
   function () {
 
-    if (!this.dataset.t) {
+    if (
+      !this.dataset.t
+    ) {
 
-      this.dataset.t = 1;
+      this.dataset.t =
+        1;
 
-      this.src = './qr.png';
+      this.src =
+        './qr.png';
 
     } else {
 
       this.replaceWith(
         Object.assign(
-          document.createElement('p'),
+          document.createElement(
+            'p'
+          ),
           {
-            className: 'note',
+            className:
+              'note',
+
             textContent:
               'Falta el archivo qr.png o qr.jpg en esta carpeta.'
           }
         )
       );
+
     }
+
   };
 
 
-/* ---------- PAGADO ---------- */
+/* =========================================================
+   PAGADO
+   ========================================================= */
 
-$('#paid').onclick = () => {
+$('#paid').onclick =
+  () => {
 
-  $('#rev')
-    .classList
-    .add('open');
-
-  $('#paid').hidden = true;
-
-  setTimeout(
-    () => $('#nm').focus(),
-    450
-  );
-};
+    $('#rev')
+      .classList
+      .add(
+        'open'
+      );
 
 
-/* ---------- ARCHIVO ---------- */
+    $('#paid').hidden =
+      true;
+
+
+    setTimeout(
+      () =>
+        $('#nm').focus(),
+      450
+    );
+
+  };
+
+
+/* =========================================================
+   ARCHIVO
+   ========================================================= */
 
 function setFile(f) {
 
   if (
     !f ||
-    !f.type.startsWith('image/')
+    !f.type.startsWith(
+      'image/'
+    )
   ) {
+
     return;
+
   }
 
-  file = f;
+
+  file =
+    f;
+
 
   $('#drop img')?.remove();
 
-  const im = new Image();
+
+  const im =
+    new Image();
+
 
   im.src =
-    URL.createObjectURL(f);
+    URL.createObjectURL(
+      f
+    );
 
-  $('#drop').prepend(im);
+
+  $('#drop').prepend(
+    im
+  );
+
 
   $('#dropTxt').innerHTML =
-    `<b>${f.name.replace(/</g, '')}</b>
-     <small>Toca para cambiarla</small>`;
+    `<b>${f.name.replace(
+      /</g,
+      ''
+    )}</b>
+     <small>
+       Toca para cambiarla
+     </small>`;
+
 
   $('[data-f=file]')
     .classList
-    .remove('bad');
+    .remove(
+      'bad'
+    );
+
 }
 
 
@@ -1052,54 +2208,63 @@ $('#fl').onchange =
     );
 
 
-['dragover', 'dragenter']
-  .forEach(
-    t =>
-      $('#drop')
-        .addEventListener(
-          t,
-          e => {
+[
+  'dragover',
+  'dragenter'
+]
+.forEach(
+  t =>
+    $('#drop')
+      .addEventListener(
+        t,
+        e => {
 
-            e.preventDefault();
+          e.preventDefault();
 
-            $('#drop')
-              .classList
-              .add('over');
+          $('#drop')
+            .classList
+            .add(
+              'over'
+            );
 
-          }
-        )
-  );
-
-
-['dragleave', 'drop']
-  .forEach(
-    t =>
-      $('#drop')
-        .addEventListener(
-          t,
-          e => {
-
-            e.preventDefault();
-
-            $('#drop')
-              .classList
-              .remove('over');
-
-          }
-        )
-  );
-
-
-$('#drop').addEventListener(
-  'drop',
-  e =>
-    setFile(
-      e.dataTransfer.files[0]
-    )
+        }
+      )
 );
 
 
-/* ---------- RESET ARCHIVO ---------- */
+[
+  'dragleave',
+  'drop'
+]
+.forEach(
+  t =>
+    $('#drop')
+      .addEventListener(
+        t,
+        e => {
+
+          e.preventDefault();
+
+          $('#drop')
+            .classList
+            .remove(
+              'over'
+            );
+
+        }
+      )
+);
+
+
+$('#drop')
+  .addEventListener(
+    'drop',
+    e =>
+      setFile(
+        e.dataTransfer.files[0]
+      )
+  );
+
 
 function resetDrop() {
 
@@ -1107,30 +2272,47 @@ function resetDrop() {
     '<b>Sube la imagen del comprobante</b>' +
     '<small>Toca aquí o arrástrala</small>';
 
+
   $('#drop img')?.remove();
+
 }
 
 
-/* ---------- ERROR DE USUARIO ---------- */
+/* =========================================================
+   ERROR DE USUARIO
+   ========================================================= */
 
 const ue =
   m =>
     Object.assign(
       new Error(m),
       {
-        user: 1
+        user:
+          true
       }
     );
 
 
 /* =========================================================
-   ENVÍO DEL PEDIDO
+   ENVÍO
    ========================================================= */
 
 $('#form').onsubmit =
   async e => {
 
+    /*
+      IMPORTANTE:
+
+      Evitamos el envío automático del navegador
+      porque primero tenemos que guardar el pedido
+      en nuestro servidor.
+
+      Después llamamos a HTMLFormElement.submit()
+      para hacer el POST NORMAL a Formspree.
+    */
+
     e.preventDefault();
+
 
     if (busy) {
       return;
@@ -1142,6 +2324,7 @@ $('#form').onsubmit =
         .value
         .trim();
 
+
     const phone =
       $('#ph')
         .value
@@ -1149,20 +2332,27 @@ $('#form').onsubmit =
 
 
     const ok = {
+
       name:
         name.length > 1,
 
       phone:
         phone
-          .replace(/\D/g, '')
+          .replace(
+            /\D/g,
+            ''
+          )
           .length >= 7,
 
       file:
         !!file
+
     };
 
 
-    for (const k in ok) {
+    for (
+      const k in ok
+    ) {
 
       document
         .querySelector(
@@ -1173,6 +2363,7 @@ $('#form').onsubmit =
           'bad',
           !ok[k]
         );
+
     }
 
 
@@ -1181,15 +2372,23 @@ $('#form').onsubmit =
       !ok.phone ||
       !ok.file
     ) {
+
       return;
+
     }
 
 
-    busy = true;
+    busy =
+      true;
 
-    const b = $('#send');
 
-    b.disabled = true;
+    const b =
+      $('#send');
+
+
+    b.disabled =
+      true;
+
 
     b.textContent =
       'Enviando…';
@@ -1197,7 +2396,8 @@ $('#form').onsubmit =
 
     const nums =
       [...sel].sort(
-        (a, c) => a - c
+        (a, c) =>
+          a - c
       );
 
 
@@ -1208,28 +2408,28 @@ $('#form').onsubmit =
 
 
     const link =
-      `${base}?aprobar=${encodeURIComponent(order)}`;
+      `${base}?aprobar=${encodeURIComponent(
+        order
+      )}`;
 
 
     try {
 
-      /*
-        ======================================================
-        PASO 1
-        Guardamos el pedido en Render.
-        Aquí SÍ usamos fetch porque es nuestro propio servidor.
-        ======================================================
-      */
+      /* =====================================================
+         PASO 1 — GUARDAR PEDIDO EN RENDER
+         ===================================================== */
 
       if (
-        CONFIG.MODE === 'server'
+        CONFIG.MODE ===
+        'server'
       ) {
 
         const r =
           await fetch(
             '/api/pay',
             {
-              method: 'POST',
+              method:
+                'POST',
 
               headers: {
                 'Content-Type':
@@ -1238,9 +2438,14 @@ $('#form').onsubmit =
 
               body:
                 JSON.stringify({
-                  orderId: order,
-                  name: name,
-                  phone: phone
+                  orderId:
+                    order,
+
+                  name:
+                    name,
+
+                  phone:
+                    phone
                 })
             }
           );
@@ -1260,87 +2465,39 @@ $('#form').onsubmit =
             j.error ||
             `El servidor rechazó el pedido (HTTP ${r.status}).`
           );
+
         }
 
 
-        DB = j;
+        DB =
+          j;
+
       }
 
 
-      /*
-        ======================================================
-        PASO 2
-        FORMspree.
+      /* =====================================================
+         PASO 2 — PREPARAR FORMULARIO DE FORMSPREE
+         ===================================================== */
 
-        NO usamos fetch().
-
-        Creamos un formulario HTML real con:
-        method="POST"
-        enctype="multipart/form-data"
-
-        Esto evita el problema CORS que teníamos con fetch().
-        ======================================================
-      */
-
-      if (
-        CONFIG.FORMSPREE &&
-        !CONFIG.FORMSPREE.includes(
-          'YOUR_ID'
-        )
-      ) {
-
-        const fs =
-          document.createElement(
-            'form'
-          );
+      $('#fsSubject').value =
+        'Nuevo pago: números ' +
+        nums.join(', ');
 
 
-        fs.method =
-          'POST';
-
-        fs.action =
-          CONFIG.FORMSPREE;
-
-        fs.enctype =
-          'multipart/form-data';
-
-        fs.encoding =
-          'multipart/form-data';
-
-        fs.target =
-          'formspree_target';
-
-        fs.style.display =
-          'none';
+      $('#fsNumbers').value =
+        nums.join(', ');
 
 
-        /*
-          Campos que recibirá Formspree.
-        */
+      $('#fsOrder').value =
+        order;
 
-        const fields = {
 
-          _subject:
-            'Nuevo pago: números ' +
-            nums.join(', '),
+      $('#fsApprove').value =
+        link;
 
-          Nombre:
-            name,
 
-          'Teléfono':
-            phone,
-
-          'Números pagados':
-            nums.join(', '),
-
-          Pedido:
-            order,
-
-          Aprobar:
-            link,
-
-          message:
-            `Nuevo pago pendiente.
+      $('#fsMessage').value =
+        `Nuevo pago pendiente.
 
 Nombre: ${name}
 Teléfono: ${phone}
@@ -1348,141 +2505,88 @@ Números: ${nums.join(', ')}
 Pedido: ${order}
 
 Aprobar esta compra:
-${link}`
-        };
-
-
-        for (
-          const [key, value]
-          of Object.entries(fields)
-        ) {
-
-          const input =
-            document.createElement(
-              'input'
-            );
-
-          input.type =
-            'hidden';
-
-          input.name =
-            key;
-
-          input.value =
-            value;
-
-          fs.appendChild(input);
-        }
-
-
-        /*
-          IMPORTANTE:
-          usamos el mismo input de archivo
-          que ya tiene seleccionado el comprobante.
-
-          No hacemos base64.
-          No hacemos fetch.
-          El navegador manda el archivo
-          directamente como multipart/form-data.
-        */
-
-        const originalParent =
-          $('#fl').parentNode;
-
-        const originalNext =
-          $('#fl').nextSibling;
-
-
-        $('#fl').name =
-          'Comprobante';
-
-
-        fs.appendChild(
-          $('#fl')
-        );
-
-
-        document.body.appendChild(
-          fs
-        );
-
-
-        /*
-          POST HTML tradicional a Formspree.
-        */
-
-        HTMLFormElement.prototype.submit.call(
-          fs
-        );
-
-
-        /*
-          Restauramos el input visualmente
-          después de iniciar el envío.
-        */
-
-        if (
-          originalNext
-        ) {
-
-          originalParent.insertBefore(
-            $('#fl'),
-            originalNext
-          );
-
-        } else {
-
-          originalParent.appendChild(
-            $('#fl')
-          );
-        }
-
-
-        /*
-          Ya no necesitamos el formulario oculto.
-        */
-
-        setTimeout(
-          () => fs.remove(),
-          1000
-        );
-
-
-      } else {
-
-        console.warn(
-          'Formspree no está configurado.'
-        );
-      }
+${link}`;
 
 
       /*
-        En modo no-server mantenemos
-        el comportamiento anterior.
+        Verificación adicional:
+        el archivo tiene que seguir dentro del
+        formulario real.
       */
 
+      const inputFile =
+        $('#fl');
+
+
       if (
-        CONFIG.MODE !== 'server'
+        !inputFile.files ||
+        !inputFile.files.length
+      ) {
+
+        throw ue(
+          'El comprobante no está seleccionado.'
+        );
+
+      }
+
+
+      /* =====================================================
+         PASO 3 — POST NORMAL A FORMSPREE
+
+         NO fetch()
+         NO FormData manual
+         NO CORS AJAX
+
+         El navegador envía directamente:
+         Nombre
+         Teléfono
+         Números pagados
+         Pedido
+         Aprobar
+         message
+         Comprobante
+      ===================================================== */
+
+
+      sent =
+        true;
+
+
+      HTMLFormElement.prototype.submit.call(
+        $('#form')
+      );
+
+
+      /*
+        El formulario ya fue enviado al iframe.
+        Formspree procesa el POST.
+
+        No esperamos una respuesta AJAX,
+        porque precisamente queremos evitar CORS.
+      */
+
+
+      if (
+        CONFIG.MODE !==
+        'server'
       ) {
 
         DB =
           await Store.mutate(
             'submit',
             {
-              orderId: order,
-              name: name,
-              phone: phone
+              orderId:
+                order,
+
+              name:
+                name,
+
+              phone:
+                phone
             }
           );
+
       }
-
-
-      /*
-        El POST a Formspree ya fue iniciado.
-        Marcamos el pedido como enviado.
-      */
-
-      sent = true;
 
 
       toast(
@@ -1491,12 +2595,26 @@ ${link}`
       );
 
 
-      await close(false);
+      await close(
+        false
+      );
+
 
       renderGrid();
 
 
     } catch (err) {
+
+      /*
+        Si falla aquí, el error viene de:
+        - /api/pay
+        - validación local
+        - archivo
+      */
+
+      sent =
+        false;
+
 
       console.error(
         'ERROR COMPLETO:',
@@ -1514,15 +2632,21 @@ ${link}`
             ),
         'err'
       );
+
     }
 
 
-    busy = false;
+    busy =
+      false;
 
-    b.disabled = false;
+
+    b.disabled =
+      false;
+
 
     b.textContent =
       'Enviar';
+
   };
 
 
@@ -1535,7 +2659,9 @@ ${link}`
   const ap =
     new URLSearchParams(
       location.search
-    ).get('aprobar');
+    ).get(
+      'aprobar'
+    );
 
 
   try {
@@ -1543,11 +2669,12 @@ ${link}`
     if (ap) {
 
       /*
-        El enlace del correo abre:
-        ?aprobar=ID
+        El enlace que llega por correo es:
 
-        Lo convertimos directamente
-        mediante el endpoint del servidor.
+        https://rifa-53mv.onrender.com/?aprobar=ID
+
+        El servidor convierte ese pedido
+        en pagado.
       */
 
       const r =
@@ -1557,9 +2684,11 @@ ${link}`
 
 
       if (!r.ok) {
+
         throw new Error(
           'No se pudo aprobar la compra.'
         );
+
       }
 
 
@@ -1583,6 +2712,7 @@ ${link}`
 
       DB =
         await Store.read();
+
     }
 
   } catch (e) {
@@ -1591,6 +2721,7 @@ ${link}`
       '<p class="empty">No pudimos cargar los números. Recarga la página.</p>';
 
     return;
+
   }
 
 
