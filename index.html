@@ -1,11 +1,14 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Reserva tu número</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
 <style>
 :root{--ink:#12182B;--paper:#F3F5F9;--line:#DDE2EC;--mute:#6B7488;--ok:#0E8F6B;--okbg:#E6F5EF;--hold:#9A6A14;--gold:#B98A2E;--bad:#C0392B;--sh:0 1px 2px rgba(18,24,43,.06),0 16px 36px -14px rgba(18,24,43,.2);--f1:'Bricolage Grotesque',system-ui,sans-serif;--f2:'Instrument Sans',system-ui,sans-serif}
 *{box-sizing:border-box}[hidden]{display:none!important}
@@ -76,226 +79,1430 @@ form{padding-top:20px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
+
 <body>
-<div class="hero"><div class="wrap">
-  <div><h1>Reserva tu número</h1><p>Elige uno o varios números disponibles, paga con QR y envía tu comprobante. Te confirmaremos apenas lo revisemos.</p></div>
-  <button class="buy" id="buy">Comprar</button>
-</div></div>
 
-<main class="wrap"><div class="card">
-  <div class="warn" id="warn" hidden></div>
-  <div class="legend" id="legend"></div>
-  <div id="grid" aria-label="Números (solo referencia)"></div>
-</div></main>
-
-<div class="ov" id="ov"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ttl">
-  <header><h2 id="ttl"></h2><button class="x" id="x" aria-label="Cerrar">&times;</button></header>
-  <div class="body">
-    <div class="step" id="s1">
-      <input class="q" id="q" type="search" placeholder="Buscar un número" inputmode="numeric" aria-label="Buscar un número">
-      <div id="list"></div>
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Reserva tu número</h1>
+      <p>Elige uno o varios números disponibles, paga con QR y envía tu comprobante. Te confirmaremos apenas lo revisemos.</p>
     </div>
-    <div class="step" id="s2">
-      <div class="qr"><img id="qrimg" alt="Código QR de pago" src="./qr.jpg"></div>
-      <p class="note">Se solicitara el comprobante de pago, porfavor guarda una imagen del comprobante.</p>
-      <button class="btn full gold" id="paid" type="button">Pagado</button>
-      <div class="reveal" id="rev"><div>
-        <form id="form" novalidate>
-          <div class="f" data-f="name"><label for="nm">Nombre</label><input id="nm" type="text" autocomplete="name"><div class="e">Escribe tu nombre.</div></div>
-          <div class="f" data-f="phone"><label for="ph">Teléfono</label><input id="ph" type="tel" autocomplete="tel" inputmode="tel"><div class="e">Escribe un teléfono válido.</div></div>
-          <div class="f" data-f="file"><span class="lb">Comprobante de pago</span>
-            <label class="drop" id="drop" for="fl"><span id="dropTxt"><b>Sube la imagen del comprobante</b><small>Toca aquí o arrástrala</small></span><input id="fl" type="file" accept="image/*" hidden></label>
-            <div class="e">Sube la imagen del comprobante.</div></div>
-          <button class="btn full" id="send" type="submit">Enviar</button>
-        </form>
-      </div></div>
-    </div>
+    <button class="buy" id="buy">Comprar</button>
   </div>
-  <footer id="foot"><span id="cnt"></span><button class="btn" id="go" disabled>Continuar</button></footer>
-</div></div>
-<div class="toast" id="toast" role="status" aria-live="polite"><b></b><span></span></div>
+</div>
+
+<main class="wrap">
+  <div class="card">
+    <div class="warn" id="warn" hidden></div>
+    <div class="legend" id="legend"></div>
+    <div id="grid" aria-label="Números (solo referencia)"></div>
+  </div>
+</main>
+
+<div class="ov" id="ov">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ttl">
+
+    <header>
+      <h2 id="ttl"></h2>
+      <button class="x" id="x" aria-label="Cerrar">&times;</button>
+    </header>
+
+    <div class="body">
+
+      <div class="step" id="s1">
+        <input class="q" id="q" type="search" placeholder="Buscar un número" inputmode="numeric" aria-label="Buscar un número">
+        <div id="list"></div>
+      </div>
+
+      <div class="step" id="s2">
+
+        <div class="qr">
+          <img id="qrimg" alt="Código QR de pago" src="./qr.jpg">
+        </div>
+
+        <p class="note">
+          Se solicitará el comprobante de pago, por favor guarda una imagen del comprobante.
+        </p>
+
+        <button class="btn full gold" id="paid" type="button">Pagado</button>
+
+        <div class="reveal" id="rev">
+          <div>
+
+            <form id="form" novalidate>
+
+              <div class="f" data-f="name">
+                <label for="nm">Nombre</label>
+                <input id="nm" type="text" autocomplete="name">
+                <div class="e">Escribe tu nombre.</div>
+              </div>
+
+              <div class="f" data-f="phone">
+                <label for="ph">Teléfono</label>
+                <input id="ph" type="tel" autocomplete="tel" inputmode="tel">
+                <div class="e">Escribe un teléfono válido.</div>
+              </div>
+
+              <div class="f" data-f="file">
+                <span class="lb">Comprobante de pago</span>
+
+                <label class="drop" id="drop" for="fl">
+                  <span id="dropTxt">
+                    <b>Sube la imagen del comprobante</b>
+                    <small>Toca aquí o arrástrala</small>
+                  </span>
+
+                  <input id="fl" type="file" accept="image/*" hidden>
+                </label>
+
+                <div class="e">Sube la imagen del comprobante.</div>
+              </div>
+
+              <button class="btn full" id="send" type="submit">
+                Enviar
+              </button>
+
+            </form>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <footer id="foot">
+      <span id="cnt"></span>
+      <button class="btn" id="go" disabled>Continuar</button>
+    </footer>
+
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <b></b>
+  <span></span>
+</div>
 
 <script>
-/* ---------- CONFIG ----------
- MODE 'static'  : lee ./numbers.json; los cambios se guardan en localStorage (modo prueba).
- MODE 'kvdb'    : guarda todo el arreglo en KVdb.io (GET/PUT). El enlace "Aprobar" abre esta misma página con ?aprobar=ID.
- MODE 'server'  : POST {action:'reserve'|'release'|'submit'|'approve', ...} a una función que lea/escriba numbers.json
-                  (la lógica de apply() abajo es la que debe replicar el servidor). GET devuelve el arreglo.
- Campos por número: num, status, name, phone, confirm (+ orderId, at para agrupar cada compra). */
-const CONFIG={
-  MODE:'server',   // 'server' = usa server.js (recomendado) | 'static' = solo prueba | 'kvdb'
-  KVDB_URL:'https://kvdb.io/X9xZvhLutQBALSAaNbJ5nv/numbers',
-  API:'/api/numbers',
-  FORMSPREE:'https://formspree.io/f/xwlpbwjw',   // el destinatario angierodca@gmail.com se configura en Formspree
-  NOTIFY_EMAIL:'angierodca@gmail.com',
-  APPROVE_BASE:''                                // vacío = esta misma página
+
+/* =========================================================
+   CONFIGURACIÓN
+   ========================================================= */
+
+const CONFIG = {
+  MODE: 'server',
+
+  KVDB_URL: 'https://kvdb.io/X9xZvhLutQBALSAaNbJ5nv/numbers',
+
+  API: '/api/numbers',
+
+  /* FORMspree REAL */
+  FORMSPREE: 'https://formspree.io/f/xwlpbwjw',
+
+  NOTIFY_EMAIL: 'angierodca@gmail.com',
+
+  /* Vacío = usa automáticamente el dominio actual */
+  APPROVE_BASE: ''
 };
 
-const LBL={available:'Disponible',reserved:'En proceso',unavailable:'Pagado'};
-const $=s=>document.querySelector(s);
-const uid=()=>crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2)+Date.now().toString(36);
-const free=n=>n&&(n.status==='available'||(n.status==='reserved'&&n.at&&!n.name&&Date.now()-n.at>9e5)); // reservas sin pagar vencen a los 15 min
-let DB=[],sel=new Set(),order=null,sent=false,file=null,busy=false,offline=false;
 
-/* ---------- Lógica de datos (misma que debe correr en el servidor) ---------- */
-function apply(L,a,p){
-  const mine=n=>n.orderId===p.orderId;
-  if(a==='reserve'){
-    const m=new Map(L.map(n=>[String(n.num),n]));
-    if(p.nums.some(x=>!free(m.get(x))))throw new Error('conflict');
-    p.nums.forEach(x=>Object.assign(m.get(x),{status:'reserved',name:'',phone:'',confirm:false,orderId:p.orderId,at:p.at}));
+/* =========================================================
+   UTILIDADES
+   ========================================================= */
+
+const LBL = {
+  available: 'Disponible',
+  reserved: 'En proceso',
+  unavailable: 'Pagado'
+};
+
+const $ = s => document.querySelector(s);
+
+const uid = () =>
+  crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2) +
+      Date.now().toString(36);
+
+const free = n =>
+  n &&
+  (
+    n.status === 'available' ||
+    (
+      n.status === 'reserved' &&
+      n.at &&
+      !n.name &&
+      Date.now() - n.at > 9e5
+    )
+  );
+
+
+let DB = [];
+let sel = new Set();
+let order = null;
+let sent = false;
+let file = null;
+let busy = false;
+let offline = false;
+
+
+/* =========================================================
+   LÓGICA DE DATOS
+   ========================================================= */
+
+function apply(L, a, p) {
+
+  const mine = n => n.orderId === p.orderId;
+
+  if (a === 'reserve') {
+
+    const m = new Map(
+      L.map(n => [String(n.num), n])
+    );
+
+    if (
+      !p.nums.some(x => !free(m.get(x)))
+    ) {
+      p.nums.forEach(x => {
+        Object.assign(
+          m.get(x),
+          {
+            status: 'reserved',
+            name: '',
+            phone: '',
+            confirm: false,
+            orderId: p.orderId,
+            at: p.at
+          }
+        );
+      });
+    } else {
+      throw new Error('conflict');
+    }
   }
-  if(a==='release')L.filter(n=>mine(n)&&!n.name).forEach(n=>Object.assign(n,{status:'available',orderId:'',at:0}));
-  if(a==='submit')L.filter(mine).forEach(n=>Object.assign(n,{status:'reserved',name:p.name,phone:p.phone,confirm:false}));
-  if(a==='approve')L.filter(mine).forEach(n=>Object.assign(n,{status:'unavailable',confirm:true}));
+
+  if (a === 'release') {
+    L
+      .filter(n => mine(n) && !n.name)
+      .forEach(n =>
+        Object.assign(
+          n,
+          {
+            status: 'available',
+            orderId: '',
+            at: 0
+          }
+        )
+      );
+  }
+
+  if (a === 'submit') {
+    L
+      .filter(mine)
+      .forEach(n =>
+        Object.assign(
+          n,
+          {
+            status: 'reserved',
+            name: p.name,
+            phone: p.phone,
+            confirm: false
+          }
+        )
+      );
+  }
+
+  if (a === 'approve') {
+    L
+      .filter(mine)
+      .forEach(n =>
+        Object.assign(
+          n,
+          {
+            status: 'unavailable',
+            confirm: true
+          }
+        )
+      );
+  }
+
   return L;
 }
-const seed=async()=>{try{const r=await fetch('./numbers.json',{cache:'no-store'});if(r.ok)return await r.json()}catch(e){}
-  return Array.from({length:100},(_,i)=>({num:String(i).padStart(2,'0'),status:'available',name:'',phone:'',confirm:false}))};
-const Store={
-  async read(){
-    if(CONFIG.MODE==='server'){try{const r=await fetch(CONFIG.API,{cache:'no-store'});if(!r.ok)throw 0;offline=false;return await r.json()}catch(e){offline=true;return seed()}}
-    if(CONFIG.MODE==='kvdb'){const r=await fetch(CONFIG.KVDB_URL,{cache:'no-store'});if(r.ok)return r.json();const s=await seed();await this.write(s);return s}
-    const o=localStorage.getItem('numbers_demo');return o?JSON.parse(o):seed();
-  },
-  async write(L){
-    if(CONFIG.MODE==='kvdb'){const r=await fetch(CONFIG.KVDB_URL,{method:'PUT',body:JSON.stringify(L)});if(!r.ok)throw new Error('write')}
-    else localStorage.setItem('numbers_demo',JSON.stringify(L));
-  },
-  async mutate(a,p){
-    if(CONFIG.MODE==='server'){
-      const r=await fetch(CONFIG.API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:a,...p})});
-      if(r.status===409)throw new Error('conflict');if(!r.ok)throw new Error('api');return r.json();
+
+
+const seed = async () => {
+
+  try {
+
+    const r = await fetch(
+      './numbers.json',
+      { cache: 'no-store' }
+    );
+
+    if (r.ok) {
+      return await r.json();
     }
-    const L=await this.read();apply(L,a,p);await this.write(L);return L; // lee justo antes de escribir para reducir choques
+
+  } catch (e) {}
+
+  return Array.from(
+    { length: 100 },
+    (_, i) => ({
+      num: String(i).padStart(2, '0'),
+      status: 'available',
+      name: '',
+      phone: '',
+      confirm: false
+    })
+  );
+};
+
+
+const Store = {
+
+  async read() {
+
+    if (CONFIG.MODE === 'server') {
+
+      try {
+
+        const r = await fetch(
+          CONFIG.API,
+          { cache: 'no-store' }
+        );
+
+        if (!r.ok) throw 0;
+
+        offline = false;
+
+        return await r.json();
+
+      } catch (e) {
+
+        offline = true;
+        return seed();
+
+      }
+    }
+
+
+    if (CONFIG.MODE === 'kvdb') {
+
+      const r = await fetch(
+        CONFIG.KVDB_URL,
+        { cache: 'no-store' }
+      );
+
+      if (r.ok) return r.json();
+
+      const s = await seed();
+
+      await this.write(s);
+
+      return s;
+    }
+
+
+    const o = localStorage.getItem(
+      'numbers_demo'
+    );
+
+    return o ? JSON.parse(o) : seed();
+  },
+
+
+  async write(L) {
+
+    if (CONFIG.MODE === 'kvdb') {
+
+      const r = await fetch(
+        CONFIG.KVDB_URL,
+        {
+          method: 'PUT',
+          body: JSON.stringify(L)
+        }
+      );
+
+      if (!r.ok) {
+        throw new Error('write');
+      }
+
+    } else {
+
+      localStorage.setItem(
+        'numbers_demo',
+        JSON.stringify(L)
+      );
+
+    }
+  },
+
+
+  async mutate(a, p) {
+
+    if (CONFIG.MODE === 'server') {
+
+      const r = await fetch(
+        CONFIG.API,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: a,
+            ...p
+          })
+        }
+      );
+
+      if (r.status === 409) {
+        throw new Error('conflict');
+      }
+
+      if (!r.ok) {
+        throw new Error('api');
+      }
+
+      return r.json();
+    }
+
+
+    const L = await this.read();
+
+    apply(L, a, p);
+
+    await this.write(L);
+
+    return L;
   }
 };
 
-/* ---------- UI ---------- */
-function toast(t,s,kind){const e=$('#toast');e.className='toast'+(kind==='err'?' err':'');e.querySelector('b').textContent=t;e.querySelector('span').textContent=s||'';
-  requestAnimationFrame(()=>e.classList.add('on'));clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),5000)}
 
-function renderGrid(){
-  const c={available:0,reserved:0,unavailable:0};let h='';
-  for(let i=0;i<DB.length;i+=100){
-    const part=DB.slice(i,i+100);
-    h+=`<section class="blk"><h3>${part[0].num} a ${part[part.length-1].num}</h3><div class="cells">`;
-    for(const n of part){const s=free(n)?'available':n.status;c[s]++;h+=`<span class="cell ${s}" title="${LBL[s]}">${n.num}</span>`}
-    h+='</div></section>';
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+function toast(t, s, kind) {
+
+  const e = $('#toast');
+
+  e.className =
+    'toast' +
+    (kind === 'err' ? ' err' : '');
+
+  e.querySelector('b').textContent = t;
+  e.querySelector('span').textContent = s || '';
+
+  requestAnimationFrame(() =>
+    e.classList.add('on')
+  );
+
+  clearTimeout(toast.t);
+
+  toast.t = setTimeout(
+    () => e.classList.remove('on'),
+    5000
+  );
+}
+
+
+/* =========================================================
+   GRID
+   ========================================================= */
+
+function renderGrid() {
+
+  const c = {
+    available: 0,
+    reserved: 0,
+    unavailable: 0
+  };
+
+  let h = '';
+
+  for (let i = 0; i < DB.length; i += 100) {
+
+    const part = DB.slice(i, i + 100);
+
+    h += `
+      <section class="blk">
+        <h3>
+          ${part[0].num} a ${part[part.length - 1].num}
+        </h3>
+
+        <div class="cells">
+    `;
+
+    for (const n of part) {
+
+      const s =
+        free(n)
+          ? 'available'
+          : n.status;
+
+      c[s]++;
+
+      h += `
+        <span
+          class="cell ${s}"
+          title="${LBL[s]}"
+        >
+          ${n.num}
+        </span>
+      `;
+    }
+
+    h += `
+        </div>
+      </section>
+    `;
   }
-  const g=$('#grid');g.innerHTML=h;g.classList.remove('in');void g.offsetWidth;g.classList.add('in');
-  $('#legend').innerHTML=Object.keys(LBL).map(k=>`<span><i class="sw ${k}"></i><b>${c[k]}</b>${LBL[k].toLowerCase()}${k==='available'?'s':k==='reserved'?'':'s'}</span>`).join('');
-  $('#buy').disabled=!c.available;
-  const w=$('#warn');w.hidden=!offline;w.textContent='No hay conexión con el servidor. Estás viendo los números de referencia. Enciende server.js y abre esta página desde su dirección (por ejemplo http://localhost:3000) para poder comprar.';
+
+
+  const g = $('#grid');
+
+  g.innerHTML = h;
+
+  g.classList.remove('in');
+
+  void g.offsetWidth;
+
+  g.classList.add('in');
+
+
+  $('#legend').innerHTML =
+    Object.keys(LBL)
+      .map(k =>
+        `<span>
+          <i class="sw ${k}"></i>
+          <b>${c[k]}</b>
+          ${LBL[k].toLowerCase()}${k === 'reserved' ? '' : 's'}
+        </span>`
+      )
+      .join('');
+
+
+  $('#buy').disabled = !c.available;
+
+
+  const w = $('#warn');
+
+  w.hidden = !offline;
+
+  w.textContent =
+    'No hay conexión con el servidor. Estás viendo los números de referencia. Enciende server.js y abre esta página desde su dirección para poder comprar.';
 }
-function buildPicker(){
-  const L=DB.filter(free);let h='';
-  for(let i=0;i<L.length;i+=100)h+='<div class="pk">'+L.slice(i,i+100).map(n=>`<button type="button" class="chip${sel.has(String(n.num))?' on':''}" data-n="${n.num}" aria-pressed="${sel.has(String(n.num))}">${n.num}</button>`).join('')+'</div>';
-  $('#list').innerHTML=L.length?h:'<p class="empty">Ya no quedan números disponibles.</p>';upd();
+
+
+/* =========================================================
+   SELECTOR
+   ========================================================= */
+
+function buildPicker() {
+
+  const L = DB.filter(free);
+
+  let h = '';
+
+  for (let i = 0; i < L.length; i += 100) {
+
+    h += `
+      <div class="pk">
+        ${
+          L
+            .slice(i, i + 100)
+            .map(n =>
+              `<button
+                type="button"
+                class="chip${sel.has(String(n.num)) ? ' on' : ''}"
+                data-n="${n.num}"
+                aria-pressed="${sel.has(String(n.num))}"
+              >
+                ${n.num}
+              </button>`
+            )
+            .join('')
+        }
+      </div>
+    `;
+  }
+
+
+  $('#list').innerHTML =
+    L.length
+      ? h
+      : '<p class="empty">Ya no quedan números disponibles.</p>';
+
+  upd();
 }
-function upd(){const k=sel.size;$('#cnt').textContent=k?`${k} ${k>1?'números elegidos':'número elegido'}`:'Elige uno o más números';$('#go').disabled=!k||busy}
-function step(n){
-  document.querySelectorAll('.step').forEach((s,i)=>s.classList.toggle('on',i===n-1));
-  $('#ttl').textContent=n===1?'Elige tus números':'Paga con QR';$('#foot').hidden=n!==1;
+
+
+function upd() {
+
+  const k = sel.size;
+
+  $('#cnt').textContent =
+    k
+      ? `${k} ${k > 1 ? 'números elegidos' : 'número elegido'}`
+      : 'Elige uno o más números';
+
+  $('#go').disabled =
+    !k || busy;
 }
-async function open(){
-  try{DB=await Store.read()}catch(e){return toast('No pudimos cargar los números','Revisa tu conexión e inténtalo de nuevo.','err')}
-  if(offline){renderGrid();return toast('Servidor no disponible','Enciende server.js y abre la página desde su dirección.','err')}
-  sel.clear();$('#q').value='';buildPicker();step(1);$('#ov').classList.add('on');
+
+
+/* =========================================================
+   PASOS
+   ========================================================= */
+
+function step(n) {
+
+  document
+    .querySelectorAll('.step')
+    .forEach((s, i) =>
+      s.classList.toggle(
+        'on',
+        i === n - 1
+      )
+    );
+
+  $('#ttl').textContent =
+    n === 1
+      ? 'Elige tus números'
+      : 'Paga con QR';
+
+  $('#foot').hidden = n !== 1;
 }
-async function close(release=true){
+
+
+/* =========================================================
+   ABRIR / CERRAR
+   ========================================================= */
+
+async function open() {
+
+  try {
+
+    DB = await Store.read();
+
+  } catch (e) {
+
+    return toast(
+      'No pudimos cargar los números',
+      'Revisa tu conexión e inténtalo de nuevo.',
+      'err'
+    );
+  }
+
+
+  if (offline) {
+
+    renderGrid();
+
+    return toast(
+      'Servidor no disponible',
+      'Enciende server.js y abre la página desde su dirección.',
+      'err'
+    );
+  }
+
+
+  sel.clear();
+
+  $('#q').value = '';
+
+  buildPicker();
+
+  step(1);
+
+  $('#ov').classList.add('on');
+}
+
+
+async function close(release = true) {
+
   $('#ov').classList.remove('on');
-  if(order&&release&&!sent){try{DB=await Store.mutate('release',{orderId:order});renderGrid()}catch(e){}}
-  order=null;sent=false;file=null;sel.clear();
-  setTimeout(()=>{$('#rev').classList.remove('open');$('#form').reset();resetDrop();document.querySelectorAll('.f').forEach(f=>f.classList.remove('bad'));$('#paid').hidden=false},350);
-}
-function resetDrop(){$('#dropTxt').innerHTML='<b>Sube la imagen del comprobante</b><small>Toca aquí o arrástrala</small>';$('#drop img')?.remove()}
 
-$('#buy').onclick=open;$('#x').onclick=()=>close(true);
-$('#ov').addEventListener('mousedown',e=>{if(e.target.id==='ov')close(true)});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#ov').classList.contains('on'))close(true)});
-$('#list').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;const n=b.dataset.n;
-  sel.has(n)?sel.delete(n):sel.add(n);b.classList.toggle('on');b.setAttribute('aria-pressed',sel.has(n));upd()};
-$('#q').oninput=e=>{const v=e.target.value.trim();document.querySelectorAll('.chip').forEach(c=>c.hidden=!!v&&!c.dataset.n.startsWith(v))};
 
-$('#go').onclick=async()=>{
-  busy=true;$('#go').textContent='Reservando…';upd();
-  try{
-    order=uid();DB=await Store.mutate('reserve',{nums:[...sel],orderId:order,at:Date.now()});
-    renderGrid();step(2);
-  }catch(e){
-    order=null;
-    if(e.message==='conflict'){toast('Alguien reservó uno de tus números','Actualizamos la lista, elige de nuevo.','err');try{DB=await Store.read()}catch(_){}sel.clear();buildPicker();renderGrid()}
-    else toast('No pudimos reservar','Inténtalo de nuevo en unos segundos.','err');
+  if (
+    order &&
+    release &&
+    !sent
+  ) {
+
+    try {
+
+      DB = await Store.mutate(
+        'release',
+        { orderId: order }
+      );
+
+      renderGrid();
+
+    } catch (e) {}
   }
-  busy=false;$('#go').textContent='Continuar';upd();
-};
 
-// QR: intenta qr.png y luego qr.jpg
-$('#qrimg').onerror=function(){if(!this.dataset.t){this.dataset.t=1;this.src='./qr.jpg'}else{this.replaceWith(Object.assign(document.createElement('p'),{className:'note',textContent:'Falta el archivo qr.png o qr.jpg en esta carpeta.'}))}};
 
-$('#paid').onclick=()=>{$('#rev').classList.add('open');$('#paid').hidden=true;setTimeout(()=>$('#nm').focus(),450)};
+  order = null;
+  sent = false;
+  file = null;
+  sel.clear();
 
-// Zona de carga del comprobante
-function setFile(f){
-  if(!f||!f.type.startsWith('image/'))return;file=f;$('#drop img')?.remove();
-  const im=new Image();im.src=URL.createObjectURL(f);$('#drop').prepend(im);
-  $('#dropTxt').innerHTML=`<b>${f.name.replace(/</g,'')}</b><small>Toca para cambiarla</small>`;$('[data-f=file]').classList.remove('bad');
+
+  setTimeout(() => {
+
+    $('#rev').classList.remove('open');
+
+    $('#form').reset();
+
+    resetDrop();
+
+    document
+      .querySelectorAll('.f')
+      .forEach(f =>
+        f.classList.remove('bad')
+      );
+
+    $('#paid').hidden = false;
+
+  }, 350);
 }
-$('#fl').onchange=e=>setFile(e.target.files[0]);
-['dragover','dragenter'].forEach(t=>$('#drop').addEventListener(t,e=>{e.preventDefault();$('#drop').classList.add('over')}));
-['dragleave','drop'].forEach(t=>$('#drop').addEventListener(t,e=>{e.preventDefault();$('#drop').classList.remove('over')}));
-$('#drop').addEventListener('drop',e=>setFile(e.dataTransfer.files[0]));
 
-const ue=m=>Object.assign(new Error(m),{user:1});
-const shrink=f=>new Promise(res=>{const im=new Image();im.onload=()=>{const k=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.85).split(',')[1])};im.onerror=()=>res(null);im.src=URL.createObjectURL(f)});
-$('#form').onsubmit=async e=>{
-  e.preventDefault();if(busy)return;
-  const name=$('#nm').value.trim(),phone=$('#ph').value.trim();
-  const ok={name:name.length>1,phone:phone.replace(/\D/g,'').length>=7,file:!!file};
-  for(const k in ok)document.querySelector(`[data-f=${k}]`).classList.toggle('bad',!ok[k]);
-  if(!ok.name||!ok.phone||!ok.file)return;
 
-  busy=true;const b=$('#send');b.disabled=true;b.textContent='Enviando…';
-  const nums=[...sel].sort((a,c)=>a-c);
-  const base=CONFIG.APPROVE_BASE||location.origin+location.pathname;
-  const link=`${base}?aprobar=${encodeURIComponent(order)}`;
-  try{
-    if(CONFIG.MODE==='server'){
-      const data=await shrink(file);if(!data)throw ue('No pudimos leer la imagen del comprobante.');
-      const r=await fetch('/api/pay',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId:order,name,phone,receipt:data})});
-      const j=await r.json().catch(()=>({}));if(!r.ok)throw ue(j.error||'No pudimos enviar tu comprobante.');
-      DB=j;
+/* =========================================================
+   EVENTOS PRINCIPALES
+   ========================================================= */
+
+$('#buy').onclick = open;
+
+$('#x').onclick = () => close(true);
+
+
+$('#ov').addEventListener(
+  'mousedown',
+  e => {
+
+    if (e.target.id === 'ov') {
+      close(true);
     }
 
-    if(!CONFIG.FORMSPREE.includes('YOUR_ID')){
-      const fd=new FormData();
-      fd.append('_subject','Nuevo pago: números '+nums.join(', '));
-      fd.append('Nombre',name);fd.append('Teléfono',phone);fd.append('Números pagados',nums.join(', '));
-      fd.append('Comprobante',file);fd.append('Aprobar',link);fd.append('Pedido',order);
-      fd.append('message',`Aprobar esta compra: ${link}`);
-      const r=await fetch(CONFIG.FORMSPREE,{method:'POST',body:fd,headers:{Accept:'application/json'}});
-      if(!r.ok)throw new Error('mail');
-    }else console.warn('Formspree sin configurar: no se envió el correo a '+CONFIG.NOTIFY_EMAIL);
+  }
+);
 
-    if(CONFIG.MODE!=='server'){
-      DB=await Store.mutate('submit',{orderId:order,name,phone});
+
+document.addEventListener(
+  'keydown',
+  e => {
+
+    if (
+      e.key === 'Escape' &&
+      $('#ov').classList.contains('on')
+    ) {
+      close(true);
     }
-    sent=true;toast('Estamos procesando tu pago','Te avisaremos cuando confirmemos tu comprobante.');
-    await close(false);renderGrid();
-  }catch(err){toast('No pudimos enviar tu comprobante',err.user?err.message:'Revisa tu conexión e inténtalo de nuevo.','err')}
-  busy=false;b.disabled=false;b.textContent='Enviar';
+
+  }
+);
+
+
+/* =========================================================
+   SELECCIÓN DE NÚMEROS
+   ========================================================= */
+
+$('#list').onclick = e => {
+
+  const b =
+    e.target.closest('.chip');
+
+  if (!b) return;
+
+  const n = b.dataset.n;
+
+  sel.has(n)
+    ? sel.delete(n)
+    : sel.add(n);
+
+  b.classList.toggle(
+    'on',
+    sel.has(n)
+  );
+
+  b.setAttribute(
+    'aria-pressed',
+    sel.has(n)
+  );
+
+  upd();
 };
 
-/* ---------- Inicio + aprobación desde el enlace del correo ---------- */
-(async()=>{
-  const ap=new URLSearchParams(location.search).get('aprobar');
-  try{
-    if(ap){DB=await Store.mutate('approve',{orderId:ap});history.replaceState(null,'',location.pathname);toast('Compra aprobada','Los números quedaron como pagados.')}
-    else DB=await Store.read();
-  }catch(e){$('#grid').innerHTML='<p class="empty">No pudimos cargar los números. Recarga la página.</p>';return}
+
+$('#q').oninput = e => {
+
+  const v =
+    e.target.value.trim();
+
+  document
+    .querySelectorAll('.chip')
+    .forEach(c =>
+      c.hidden =
+        !!v &&
+        !c.dataset.n.startsWith(v)
+    );
+};
+
+
+/* =========================================================
+   RESERVAR
+   ========================================================= */
+
+$('#go').onclick = async () => {
+
+  busy = true;
+
+  $('#go').textContent =
+    'Reservando…';
+
+  upd();
+
+
+  try {
+
+    order = uid();
+
+    DB = await Store.mutate(
+      'reserve',
+      {
+        nums: [...sel],
+        orderId: order,
+        at: Date.now()
+      }
+    );
+
+    renderGrid();
+
+    step(2);
+
+
+  } catch (e) {
+
+    order = null;
+
+    if (e.message === 'conflict') {
+
+      toast(
+        'Alguien reservó uno de tus números',
+        'Actualizamos la lista, elige de nuevo.',
+        'err'
+      );
+
+      try {
+        DB = await Store.read();
+      } catch (_) {}
+
+      sel.clear();
+
+      buildPicker();
+
+      renderGrid();
+
+    } else {
+
+      toast(
+        'No pudimos reservar',
+        'Inténtalo de nuevo en unos segundos.',
+        'err'
+      );
+    }
+  }
+
+
+  busy = false;
+
+  $('#go').textContent =
+    'Continuar';
+
+  upd();
+};
+
+
+/* =========================================================
+   QR
+   ========================================================= */
+
+$('#qrimg').onerror = function () {
+
+  if (!this.dataset.t) {
+
+    this.dataset.t = 1;
+
+    this.src = './qr.jpg';
+
+  } else {
+
+    this.replaceWith(
+      Object.assign(
+        document.createElement('p'),
+        {
+          className: 'note',
+          textContent:
+            'Falta el archivo qr.png o qr.jpg en esta carpeta.'
+        }
+      )
+    );
+  }
+};
+
+
+/* =========================================================
+   BOTÓN PAGADO
+   ========================================================= */
+
+$('#paid').onclick = () => {
+
+  $('#rev').classList.add('open');
+
+  $('#paid').hidden = true;
+
+  setTimeout(
+    () => $('#nm').focus(),
+    450
+  );
+};
+
+
+/* =========================================================
+   ARCHIVO
+   ========================================================= */
+
+function setFile(f) {
+
+  if (
+    !f ||
+    !f.type.startsWith('image/')
+  ) return;
+
+  file = f;
+
+  $('#drop img')?.remove();
+
+
+  const im = new Image();
+
+  im.src = URL.createObjectURL(f);
+
+  $('#drop').prepend(im);
+
+
+  $('#dropTxt').innerHTML =
+    `<b>${f.name.replace(/</g, '')}</b>
+     <small>Toca para cambiarla</small>`;
+
+
+  $('[data-f=file]')
+    .classList.remove('bad');
+}
+
+
+$('#fl').onchange =
+  e => setFile(e.target.files[0]);
+
+
+['dragover', 'dragenter']
+  .forEach(t =>
+    $('#drop').addEventListener(
+      t,
+      e => {
+
+        e.preventDefault();
+
+        $('#drop')
+          .classList.add('over');
+
+      }
+    )
+  );
+
+
+['dragleave', 'drop']
+  .forEach(t =>
+    $('#drop').addEventListener(
+      t,
+      e => {
+
+        e.preventDefault();
+
+        $('#drop')
+          .classList.remove('over');
+
+      }
+    )
+  );
+
+
+$('#drop').addEventListener(
+  'drop',
+  e => setFile(
+    e.dataTransfer.files[0]
+  )
+);
+
+
+/* =========================================================
+   COMPRIMIR IMAGEN
+   ========================================================= */
+
+const ue = m =>
+  Object.assign(
+    new Error(m),
+    { user: 1 }
+  );
+
+
+const shrink = f =>
+  new Promise(res => {
+
+    const im = new Image();
+
+    im.onload = () => {
+
+      const k =
+        Math.min(
+          1,
+          1600 /
+          Math.max(
+            im.width,
+            im.height
+          )
+        );
+
+
+      const c =
+        document.createElement('canvas');
+
+      c.width =
+        im.width * k;
+
+      c.height =
+        im.height * k;
+
+
+      c
+        .getContext('2d')
+        .drawImage(
+          im,
+          0,
+          0,
+          c.width,
+          c.height
+        );
+
+
+      c
+        .toBlob(
+          blob => res(blob),
+          'image/jpeg',
+          .85
+        );
+    };
+
+
+    im.onerror = () =>
+      res(null);
+
+    im.src =
+      URL.createObjectURL(f);
+  });
+
+
+/* =========================================================
+   ENVÍO DEL FORMULARIO
+   ========================================================= */
+
+$('#form').onsubmit = async e => {
+
+  e.preventDefault();
+
+  if (busy) return;
+
+
+  const name =
+    $('#nm').value.trim();
+
+  const phone =
+    $('#ph').value.trim();
+
+
+  const ok = {
+
+    name:
+      name.length > 1,
+
+    phone:
+      phone.replace(/\D/g, '').length >= 7,
+
+    file:
+      !!file
+  };
+
+
+  for (const k in ok) {
+
+    document
+      .querySelector(`[data-f=${k}]`)
+      .classList.toggle(
+        'bad',
+        !ok[k]
+      );
+  }
+
+
+  if (
+    !ok.name ||
+    !ok.phone ||
+    !ok.file
+  ) return;
+
+
+  busy = true;
+
+  const b = $('#send');
+
+  b.disabled = true;
+
+  b.textContent =
+    'Enviando…';
+
+
+  const nums =
+    [...sel].sort(
+      (a, c) => Number(a) - Number(c)
+    );
+
+
+  /*
+   * IMPORTANTE:
+   *
+   * El enlace ya no apunta a:
+   *
+   * ?aprobar=ID
+   *
+   * porque esa ruta no era compatible
+   * con el server.js actual.
+   *
+   * Ahora apunta directamente a:
+   *
+   * /api/approve?order=ID
+   */
+
+  const base =
+    CONFIG.APPROVE_BASE ||
+    location.origin;
+
+
+  const link =
+    `${base}/api/approve?order=${encodeURIComponent(order)}`;
+
+
+  try {
+
+    /*
+     * -----------------------------------------------------
+     * PASO 1
+     * Guardar nombre/teléfono/orden en server.js
+     * -----------------------------------------------------
+     */
+
+    if (CONFIG.MODE === 'server') {
+
+      const r =
+        await fetch(
+          '/api/pay',
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
+
+            body:
+              JSON.stringify({
+                orderId: order,
+                name,
+                phone
+              })
+          }
+        );
+
+
+      const j =
+        await r
+          .json()
+          .catch(() => ({}));
+
+
+      if (!r.ok) {
+
+        throw ue(
+          j.error ||
+          'No pudimos guardar tu solicitud.'
+        );
+      }
+
+
+      DB = j;
+    }
+
+
+    /*
+     * -----------------------------------------------------
+     * PASO 2
+     * Enviar correo + comprobante a FORMSPREE
+     * -----------------------------------------------------
+     */
+
+    const fd =
+      new FormData();
+
+
+    fd.append(
+      '_subject',
+      `Nuevo pago: números ${nums.join(', ')}`
+    );
+
+
+    fd.append(
+      'Nombre',
+      name
+    );
+
+
+    fd.append(
+      'Teléfono',
+      phone
+    );
+
+
+    fd.append(
+      'Números pagados',
+      nums.join(', ')
+    );
+
+
+    fd.append(
+      'Pedido',
+      order
+    );
+
+
+    fd.append(
+      'Aprobar',
+      link
+    );
+
+
+    fd.append(
+      'message',
+      `Nueva compra pendiente.
+
+Nombre: ${name}
+Teléfono: ${phone}
+Números: ${nums.join(', ')}
+Pedido: ${order}
+
+APROBAR COMPRA:
+${link}`
+    );
+
+
+    /*
+     * Adjuntar comprobante.
+     *
+     * Se intenta convertir a JPEG para reducir
+     * considerablemente el tamaño del archivo.
+     */
+
+    let uploadFile = file;
+
+    try {
+
+      const compressed =
+        await shrink(file);
+
+      if (compressed) {
+
+        uploadFile =
+          new File(
+            [compressed],
+            'comprobante.jpg',
+            {
+              type: 'image/jpeg'
+            }
+          );
+      }
+
+    } catch (_) {}
+
+
+    fd.append(
+      'Comprobante',
+      uploadFile
+    );
+
+
+    /*
+     * POST REAL A FORMSPREE
+     */
+
+    const mail =
+      await fetch(
+        CONFIG.FORMSPREE,
+        {
+          method: 'POST',
+          body: fd,
+          headers: {
+            Accept:
+              'application/json'
+          }
+        }
+      );
+
+
+    if (!mail.ok) {
+
+      let errorText =
+        'Formspree no pudo recibir el formulario.';
+
+      try {
+
+        const fj =
+          await mail.json();
+
+        if (
+          fj &&
+          fj.errors &&
+          fj.errors.length
+        ) {
+
+          errorText =
+            fj.errors
+              .map(x =>
+                x.message ||
+                x.code ||
+                ''
+              )
+              .filter(Boolean)
+              .join(' ');
+        }
+
+      } catch (_) {}
+
+
+      throw ue(errorText);
+    }
+
+
+    /*
+     * -----------------------------------------------------
+     * TODO CORRECTO
+     * -----------------------------------------------------
+     *
+     * server.js ya guardó la orden.
+     * Formspree recibió los datos y el comprobante.
+     *
+     * El administrador podrá utilizar el enlace
+     * /api/approve?order=...
+     */
+
+    sent = true;
+
+
+    toast(
+      'Comprobante enviado',
+      'Recibimos tu información y estamos procesando tu pago.'
+    );
+
+
+    await close(false);
+
+    renderGrid();
+
+
+  } catch (err) {
+
+    toast(
+      'No pudimos enviar tu comprobante',
+      err.user
+        ? err.message
+        : 'Revisa tu conexión e inténtalo de nuevo.',
+      'err'
+    );
+
+  }
+
+
+  busy = false;
+
+  b.disabled = false;
+
+  b.textContent =
+    'Enviar';
+};
+
+
+/* =========================================================
+   INICIO
+   ========================================================= */
+
+(async () => {
+
+  /*
+   * Si alguien visita la página con el antiguo formato
+   * ?aprobar=ID, lo redirigimos al endpoint correcto.
+   *
+   * Esto además mantiene compatibilidad con enlaces
+   * antiguos que pudieran existir.
+   */
+
+  const ap =
+    new URLSearchParams(
+      location.search
+    ).get('aprobar');
+
+
+  if (ap) {
+
+    location.replace(
+      `/api/approve?order=${encodeURIComponent(ap)}`
+    );
+
+    return;
+  }
+
+
+  try {
+
+    DB =
+      await Store.read();
+
+  } catch (e) {
+
+    $('#grid').innerHTML =
+      '<p class="empty">No pudimos cargar los números. Recarga la página.</p>';
+
+    return;
+  }
+
+
   renderGrid();
+
 })();
+
 </script>
+
 </body>
 </html>
+```
