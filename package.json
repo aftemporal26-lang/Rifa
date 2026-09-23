@@ -1,12 +1,16 @@
 {
-  "name": "sistema-reservas",
+  "name": "rifa-numeros",
   "version": "1.0.0",
-  "description": "Sistema de reservas temporal",
+  "private": true,
+  "description": "Reserva de números con pago por QR, comprobante y aprobación por correo (Resend).",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
-    "resend": "^6.28.1"
+    "resend": "^4.0.0"
   }
 }
