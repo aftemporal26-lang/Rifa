@@ -122,9 +122,8 @@ form{padding-top:20px}
       <div class="qr"><img id="qrimg" alt="Código QR de pago" src="./qr.jpg"></div>
       <p style="text-align:center;font-size:22px;font-weight:700;margin:0 0 14px">Llave: @3005759176</p>
       <p class="note">Se solicitara el comprobante de pago, porfavor guarda una imagen del comprobante.</p>
-      <button class="btn full gold" id="paid" type="button">Pagado</button>
 
-      <div class="reveal" id="rev"><div>
+      <div class="reveal open" id="rev"><div>
         <form id="form" novalidate>
 
           <div class="f" data-f="name">
@@ -757,7 +756,6 @@ async function close(release=true){
 
   setTimeout(
     ()=>{
-      $('#rev').classList.remove('open');
       $('#form').reset();
       resetDrop();
 
@@ -768,7 +766,6 @@ async function close(release=true){
             f.classList.remove('bad')
         );
 
-      $('#paid').hidden=false;
     },
     350
   );
@@ -958,21 +955,6 @@ $('#qrimg').onerror=
         )
       );
     }
-  };
-
-
-/* ---------- Mostrar formulario ---------- */
-
-$('#paid').onclick=
-  ()=>{
-    $('#rev').classList.add('open');
-
-    $('#paid').hidden=true;
-
-    setTimeout(
-      ()=>$('#nm').focus(),
-      450
-    );
   };
 
 
